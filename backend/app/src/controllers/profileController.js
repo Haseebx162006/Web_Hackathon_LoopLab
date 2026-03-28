@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const { sellerProfileUpdateSchema, sellerPasswordChangeSchema } = require('../utils/validators');
+const { uploadImage } = require('../utils/cloudinary');
 
 const getProfile = async (req, res, next) => {
   try {
@@ -34,6 +35,8 @@ const updateProfile = async (req, res, next) => {
     const body = {
       storeDescription: req.body.storeDescription,
       contactDetails: parseContactDetails(req.body.contactDetails),
+      bankDetails: req.body.bankDetails,
+      businessAddress: req.body.businessAddress,
     };
 
     const cleaned = Object.fromEntries(
@@ -52,6 +55,14 @@ const updateProfile = async (req, res, next) => {
       user.storeDescription = parsed.storeDescription;
     }
 
+    if (parsed.bankDetails !== undefined) {
+      user.bankDetails = parsed.bankDetails;
+    }
+
+    if (parsed.businessAddress !== undefined) {
+      user.businessAddress = parsed.businessAddress;
+    }
+
     if (parsed.contactDetails !== undefined) {
       if (!user.contactDetails) user.contactDetails = {};
       if (parsed.contactDetails.phone !== undefined) {
@@ -64,8 +75,8 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (req.file) {
-      const publicPath = `/uploads/store-logos/${req.file.filename}`;
-      user.storeLogo = publicPath;
+      const result = await uploadImage(req.file.path, 'store-logos');
+      user.storeLogo = result.url || `/uploads/store-logos/${req.file.filename}`;
     }
 
     await user.save();

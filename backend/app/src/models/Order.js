@@ -55,6 +55,8 @@ const orderSchema = new mongoose.Schema(
         'shipped',
         'delivered',
         'cancelled',
+        'return_requested',
+        'returned',
       ],
       default: 'pending',
     },
@@ -62,6 +64,13 @@ const orderSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: null,
+    },
+    shippingAddress: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      zipCode: String,
     },
   },
   {

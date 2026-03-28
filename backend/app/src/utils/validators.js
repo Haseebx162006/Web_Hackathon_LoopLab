@@ -145,6 +145,8 @@ const analyticsQuerySchema = z
 
 const sellerProfileUpdateSchema = z.object({
   storeDescription: z.string().max(10000).optional(),
+  bankDetails: z.string().max(500).optional(),
+  businessAddress: z.string().max(500).optional(),
   contactDetails: z
     .object({
       phone: z.string().max(50).optional(),
@@ -169,6 +171,17 @@ const sellerPasswordChangeSchema = z
     }
   });
 
+const checkoutSchema = z.object({
+  shippingAddress: z.object({
+    street: z.string().min(1),
+    city: z.string().min(1),
+    state: z.string().min(1),
+    country: z.string().min(1),
+    zipCode: z.string().min(1),
+  }),
+  paymentMethod: z.enum(['cod', 'card', 'wallet']),
+});
+
 module.exports = {
   baseSignupSchema,
   signupSchema,
@@ -185,4 +198,5 @@ module.exports = {
   analyticsQuerySchema,
   sellerProfileUpdateSchema,
   sellerPasswordChangeSchema,
+  checkoutSchema,
 };

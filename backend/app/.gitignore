@@ -1,0 +1,106 @@
+# ==============================
+# OS Files
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Logs
+# ==============================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================
+# Environment Variables
+# ==============================
+.env
+.env.*
+!.env.example
+
+# ==============================
+# Dependency Directories
+# ==============================
+node_modules/
+vendor/
+venv/
+__pycache__/
+
+# ==============================
+# Build / Output
+# ==============================
+dist/
+build/
+out/
+target/
+
+# ==============================
+# Package Managers
+# ==============================
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# (Optional: keep lock files if needed)
+# !package-lock.json
+# !yarn.lock
+
+# ==============================
+# Python
+# ==============================
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env/
+.venv/
+pip-log.txt
+
+# ==============================
+# Java
+# ==============================
+*.class
+*.jar
+*.war
+*.ear
+
+# ==============================
+# Database
+# ==============================
+*.sqlite
+*.db
+
+# ==============================
+# IDE / Editor
+# ==============================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ==============================
+# Docker
+# ==============================
+docker-compose.override.yml
+
+# ==============================
+# Temporary Files
+# ==============================
+tmp/
+temp/
+.cache/
+
+# ==============================
+# Coverage Reports
+# ==============================
+coverage/
+*.lcov
+
+# ==============================
+# Secrets / Keys
+# ==============================
+*.pem
+*.key
+*.crt

@@ -19,11 +19,11 @@ const getDashboard = async (req, res, next) => {
     const pendingOrders = orders.filter(order => order.status === 'pending').length;
 
     // 3. Find Low Stock Alerts (Stock < 10 threshold)
-    const lowStockThreshold = 10;
+    const lowStockThreshold = Number(process.env.LOW_STOCK_THRESHOLD) || 10;
     const lowStock = await Product.find({
       sellerId,
-      stock: { $lt: lowStockThreshold }
-    }).select('name stock price');
+      stockQuantity: { $lt: lowStockThreshold },
+    }).select('productName stockQuantity price');
 
     // 4. Calculate Sales Graph Data (Recent 7 Days for Example)
     // Aggregating sales amount day by day for front-end charts

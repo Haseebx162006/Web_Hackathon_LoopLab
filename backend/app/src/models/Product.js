@@ -1,13 +1,22 @@
 const mongoose = require('mongoose');
 
+const variantEntrySchema = new mongoose.Schema(
+  {
+    key: { type: String, trim: true },
+    value: { type: String, trim: true },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
     },
-    name: {
+    productName: {
       type: String,
       required: true,
       trim: true,
@@ -15,21 +24,42 @@ const productSchema = new mongoose.Schema(
     description: {
       type: String,
       required: true,
+      trim: true,
+    },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
     },
     price: {
       type: Number,
       required: true,
       min: 0,
     },
-    stock: {
+    discountPrice: {
+      type: Number,
+      min: 0,
+      default: null,
+    },
+    variants: {
+      type: [variantEntrySchema],
+      default: [],
+    },
+    skuCode: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+    },
+    stockQuantity: {
       type: Number,
       required: true,
       default: 0,
       min: 0,
     },
-    category: {
-      type: String,
-      required: true,
+    productImages: {
+      type: [String],
+      default: [],
     },
   },
   {

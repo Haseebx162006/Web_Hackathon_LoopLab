@@ -83,13 +83,7 @@ const FeatureCard = ({ feature, index, scrollYProgress }: { feature: any, index:
             {feature.desc}
           </p>
 
-          <motion.button
-            whileHover={{ scale: 1.05, y: -5 }}
-            whileTap={{ scale: 0.95 }}
-            className={`px-12 py-6 rounded-3xl ${feature.btnColor} text-white font-black text-lg shadow-2xl shadow-black/10 transition-all`}
-          >
-            Get Details
-          </motion.button>
+        
         </div>
 
         {/* Right Side: 3D Visualization */}

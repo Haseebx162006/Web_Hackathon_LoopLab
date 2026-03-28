@@ -2,6 +2,7 @@ import Categories from "@/components/Categories";
 import Features from "@/components/Features";
 import Header from "@/components/Header";
 import HeroScroll from "@/components/HeroScroll";
+import Products from "@/components/Products";
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
         <HeroScroll />
         <Features />
         <Categories />
+        <Products />
       </main>
     </div>
   );

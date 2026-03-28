@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 
-const TOTAL_FRAMES = 192;
+const START_FRAME = 7;
+const END_FRAME = 192;
 const IMG_PREFIX = "ezgif-frame-";
 
 const HeroScroll = () => {
@@ -15,14 +16,15 @@ const HeroScroll = () => {
   useEffect(() => {
     const loadedImages: HTMLImageElement[] = [];
     let loadedCount = 0;
+    const totalToLoad = END_FRAME - START_FRAME + 1;
 
-    for (let i = 1; i <= TOTAL_FRAMES; i++) {
+    for (let i = START_FRAME; i <= END_FRAME; i++) {
       const frameIndex = i.toString().padStart(3, "0");
       const img = new Image();
       img.src = `/assets/hero/${IMG_PREFIX}${frameIndex}.png`;
       img.onload = () => {
         loadedCount++;
-        if (loadedCount === TOTAL_FRAMES) {
+        if (loadedCount === totalToLoad) {
           setIsLoaded(true);
         }
       };
@@ -45,9 +47,10 @@ const HeroScroll = () => {
       const maxScroll = container.scrollHeight - window.innerHeight;
       const scrollFraction = Math.max(0, Math.min(1, scrollTop / maxScroll));
       
-      let frameIndex = Math.floor(scrollFraction * (TOTAL_FRAMES - 1)) + 1;
+      let frameIndex = Math.floor(scrollFraction * (END_FRAME - START_FRAME)) + START_FRAME;
       
-      if (frameIndex > TOTAL_FRAMES) frameIndex = TOTAL_FRAMES;
+      if (frameIndex > END_FRAME) frameIndex = END_FRAME;
+      if (frameIndex < START_FRAME) frameIndex = START_FRAME;
 
       const img = images[frameIndex];
       if (img && img.complete) {
@@ -93,9 +96,12 @@ const HeroScroll = () => {
           className="h-full w-full object-cover mix-blend-multiply opacity-100"
         />
         
+        {/* Subtle Dark Overlay */}
+        <div className="absolute inset-0 bg-black/5 z-10 pointer-events-none"></div>
+        
         {/* Scroll Indicator (Luxurious) */}
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none animate-fade-in-up">
-            <div className="w-[1px] h-20 bg-gradient-to-b from-gray-200 to-transparent"></div>
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none animate-fade-in-up z-20">
+            <div className="w-[1px] h-20 bg-gradient-to-b from-gray-300 to-transparent"></div>
         </div>
 
         {/* Loading Indicator */}

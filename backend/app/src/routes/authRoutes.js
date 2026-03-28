@@ -1,29 +1,64 @@
 const express = require('express');
-const { signup, login } = require('../controllers/authcontroller');
-const { protect } = require('../middleware/authMiddleware');
-const { isSeller, isAdmin, isBuyer } = require('../middleware/roleMiddleware');
+const passport = require('passport');
+const { signup, login, oauthSuccess, oauthFailure } = require('../controllers/authController');
 
 const router = express.Router();
 
-// Public Routes
+const PROVIDERS = ['google', 'facebook', 'github'];
+
+const oauthScopes = {
+  google: ['profile', 'email'],
+  facebook: ['email', 'public_profile'],
+  github: ['user:email'],
+};
+
+function strategyConfigured(provider) {
+  switch (provider) {
+    case 'google':
+      return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    case 'facebook':
+      return !!(process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET);
+    case 'github':
+      return !!(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
+    default:
+      return false;
+  }
+}
+
 router.post('/signup', signup);
 router.post('/login', login);
 
-// Protected Routes Examples
+router.get('/oauth/failure', oauthFailure);
 
-// Seller only route
-router.post('/products', protect, isSeller, (req, res) => {
-    res.status(200).json({ success: true, message: 'Product created successfully by seller.' });
+router.get('/oauth/:provider', (req, res, next) => {
+  const { provider } = req.params;
+  if (!PROVIDERS.includes(provider)) {
+    return res.status(400).json({ message: 'Invalid OAuth provider' });
+  }
+  if (!strategyConfigured(provider)) {
+    return res.status(503).json({ message: `OAuth provider "${provider}" is not configured` });
+  }
+  passport.authenticate(provider, {
+    scope: oauthScopes[provider],
+    session: false,
+  })(req, res, next);
 });
 
-// Admin only route
-router.get('/admin/users', protect, isAdmin, (req, res) => {
-    res.status(200).json({ success: true, message: 'Admin access: fetching all users.' });
-});
-
-// Buyer only route
-router.get('/buyer/orders', protect, isBuyer, (req, res) => {
-    res.status(200).json({ success: true, message: 'Buyer access: fetching your orders.' });
-});
+router.get('/oauth/:provider/callback', (req, res, next) => {
+  const { provider } = req.params;
+  if (!PROVIDERS.includes(provider)) {
+    return res.status(400).json({ message: 'Invalid OAuth provider' });
+  }
+  if (!strategyConfigured(provider)) {
+    return res.status(503).json({ message: `OAuth provider "${provider}" is not configured` });
+  }
+  passport.authenticate(provider, { session: false }, (err, user) => {
+    if (err || !user) {
+      return oauthFailure(req, res);
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+}, oauthSuccess);
 
 module.exports = router;

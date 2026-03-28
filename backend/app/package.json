@@ -1,7 +1,7 @@
 {
   "name": "ecommerce-auth",
   "version": "1.0.0",
-  "description": "Authentication system",
+  "description": "Authentication system (JWT + OAuth2)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -16,6 +16,10 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.3.3",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },

@@ -1,11 +1,11 @@
-const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { z } = require('zod');
+const User = require('../models/User');
 const { signupSchema, loginSchema } = require('../utils/validators');
 
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-};
+const generateToken = (id, role) =>
+  jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
 const signup = async (req, res, next) => {
   try {
@@ -24,7 +24,8 @@ const signup = async (req, res, next) => {
       name: validatedData.name,
       email: validatedData.email,
       password: hashedPassword,
-      role: validatedData.role || 'buyer'
+      role: validatedData.role || 'buyer',
+      oauthProvider: null,
     });
 
     res.status(201).json({
@@ -32,10 +33,10 @@ const signup = async (req, res, next) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id, user.role)
+      token: generateToken(user._id, user.role),
     });
   } catch (error) {
-    if (error.name === 'invalid_type' || error.name === 'ZodError') res.status(400);
+    if (error instanceof z.ZodError) res.status(400);
     next(error);
   }
 };
@@ -44,10 +45,15 @@ const login = async (req, res, next) => {
   try {
     const validatedData = loginSchema.parse(req.body);
 
-    const user = await User.findOne({ email: validatedData.email });
+    const user = await User.findOne({ email: validatedData.email }).select('+password');
     if (!user) {
       res.status(401);
       throw new Error('Invalid email or password');
+    }
+
+    if (!user.password) {
+      res.status(401);
+      throw new Error('This account uses social login. Sign in with your provider.');
     }
 
     const isMatch = await bcrypt.compare(validatedData.password, user.password);
@@ -56,20 +62,39 @@ const login = async (req, res, next) => {
       throw new Error('Invalid email or password');
     }
 
-    res.json({
+    res.status(200).json({
       _id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id, user.role)
+      token: generateToken(user._id, user.role),
     });
   } catch (error) {
-    if (error.name === 'ZodError') res.status(400);
+    if (error instanceof z.ZodError) res.status(400);
     next(error);
   }
 };
 
+const oauthSuccess = (req, res) => {
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const token = generateToken(req.user._id, req.user.role);
+  const url = new URL('/auth/callback', frontend);
+  url.searchParams.set('token', token);
+  url.searchParams.set('role', req.user.role);
+  res.redirect(url.toString());
+};
+
+const oauthFailure = (req, res) => {
+  const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const url = new URL('/auth/callback', frontend);
+  url.searchParams.set('error', 'oauth_failed');
+  res.redirect(url.toString());
+};
+
 module.exports = {
   signup,
-  login
+  login,
+  oauthSuccess,
+  oauthFailure,
+  generateToken,
 };

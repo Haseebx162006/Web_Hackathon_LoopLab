@@ -4,12 +4,12 @@ const Review = require('../models/Review');
 
 const getHomeData = async (req, res, next) => {
   try {
-    const featuredProducts = await Product.find()
+    const featuredProducts = await Product.find({ status: 'approved' })
       .sort({ createdAt: -1 })
       .limit(10)
       .select('productName price discountPrice images category rating skuCode');
 
-    const categories = await Product.distinct('category');
+    const categories = await Product.distinct('category', { status: 'approved' });
 
     res.status(200).json({
       success: true,
@@ -28,7 +28,7 @@ const searchProducts = async (req, res, next) => {
   try {
     const { search, category, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
 
-    const query = {};
+    const query = { status: 'approved' };
 
     if (search) {
       query.productName = { $regex: search, $options: 'i' };
@@ -81,7 +81,7 @@ const getProductDetails = async (req, res, next) => {
     }
 
     const product = await Product.findById(id).populate('sellerId', 'storeName storeLogo');
-    if (!product) {
+    if (!product || product.status !== 'approved') {
       res.status(404);
       return next(new Error('Product not found'));
     }

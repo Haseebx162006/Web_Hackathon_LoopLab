@@ -187,6 +187,40 @@ const adminLoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const adminUpdateUserStatusSchema = z.object({
+  status: z.enum(['active', 'suspended', 'blocked']),
+});
+
+const adminUpdateProductSchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+  isFlagged: z.boolean().optional(),
+});
+
+const adminUpdateOrderStatusSchema = z.object({
+  status: z.enum(['pending', 'processing', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned']),
+});
+
+const adminUpdateOrderReturnSchema = z.object({
+  returnStatus: z.enum(['none', 'requested', 'approved', 'rejected']),
+});
+
+const adminUpdateOrderRefundSchema = z.object({
+  refundStatus: z.enum(['none', 'pending', 'completed']),
+});
+
+const adminPaymentsQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  status: z.enum(['success', 'failed']).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+}).refine(data => {
+  if (data.startDate && data.endDate) return data.endDate >= data.startDate;
+  return true;
+}, { message: 'endDate must be on or after startDate', path: ['endDate'] });
+const adminAnalyticsQuerySchema = z.object({
+  period: z.enum(['daily', 'weekly', 'monthly']).optional().default('daily'),
+});
 module.exports = {
   baseSignupSchema,
   signupSchema,
@@ -205,4 +239,11 @@ module.exports = {
   sellerPasswordChangeSchema,
   checkoutSchema,
   adminLoginSchema,
+  adminUpdateUserStatusSchema,
+  adminUpdateProductSchema,
+  adminUpdateOrderStatusSchema,
+  adminUpdateOrderReturnSchema,
+  adminUpdateOrderRefundSchema,
+  adminPaymentsQuerySchema,
+  adminAnalyticsQuerySchema,
 };

@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema(
       required: true,
       default: 'buyer',
     },
+    status: {
+      type: String,
+      enum: ['active', 'suspended', 'blocked'],
+      default: 'active',
+    },
     // Buyer specific / General fields
     name: {
       type: String,
@@ -45,6 +50,10 @@ const userSchema = new mongoose.Schema(
     // OAuth and default fields kept for compatibility
     oauthProvider: {
       type: String,
+      default: null,
+    },
+    lastLogin: {
+      type: Date,
       default: null,
     },
     createdAt: {

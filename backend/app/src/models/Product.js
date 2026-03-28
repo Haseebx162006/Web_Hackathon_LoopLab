@@ -61,6 +61,15 @@ const productSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

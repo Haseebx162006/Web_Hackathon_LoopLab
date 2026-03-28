@@ -65,6 +65,16 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       default: null,
     },
+    returnStatus: {
+      type: String,
+      enum: ['none', 'requested', 'approved', 'rejected'],
+      default: 'none',
+    },
+    refundStatus: {
+      type: String,
+      enum: ['none', 'pending', 'completed'],
+      default: 'none',
+    },
     shippingAddress: {
       street: String,
       city: String,

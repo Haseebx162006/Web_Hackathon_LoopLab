@@ -24,11 +24,18 @@ const adminLogin = async (req, res, next) => {
       return next(new Error('Access denied. Admin resources only.'));
     }
 
+    if (user.status === 'blocked') {
+      res.status(403);
+      return next(new Error('Your account has been blocked.'));
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(401);
       return next(new Error('Invalid email or password'));
     }
+
+    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
     const token = generateToken(user._id, user.role);
 

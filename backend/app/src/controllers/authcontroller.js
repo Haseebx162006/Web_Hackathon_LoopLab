@@ -69,6 +69,11 @@ const login = async (req, res, next) => {
       throw new Error('Invalid email or password');
     }
 
+    if (user.status === 'blocked') {
+      res.status(403);
+      throw new Error('Your account has been blocked.');
+    }
+
     if (!user.password) {
       res.status(401);
       throw new Error('This account uses social login. Sign in with your provider.');
@@ -79,6 +84,8 @@ const login = async (req, res, next) => {
       res.status(401);
       throw new Error('Invalid email or password');
     }
+
+    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
     res.status(200).json({
       success: true,
@@ -114,6 +121,11 @@ const sellerLogin = async (req, res, next) => {
       throw new Error('Invalid credentials or not a seller account');
     }
 
+    if (user.status === 'blocked') {
+      res.status(403);
+      throw new Error('Your account has been blocked.');
+    }
+
     if (!user.password) {
       res.status(401);
       throw new Error('This account uses social login. Sign in with your provider.');
@@ -124,6 +136,8 @@ const sellerLogin = async (req, res, next) => {
       res.status(401);
       throw new Error('Invalid credentials or not a seller account');
     }
+
+    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
 
     res.status(200).json({
       success: true,
@@ -144,8 +158,9 @@ const sellerLogin = async (req, res, next) => {
   }
 };
 
-const oauthSuccess = (req, res) => {
+const oauthSuccess = async (req, res) => {
   const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+  await User.updateOne({ _id: req.user._id }, { lastLogin: new Date() });
   const token = generateToken(req.user._id, req.user.role);
   const url = new URL('/auth/callback', frontend);
   url.searchParams.set('token', token);

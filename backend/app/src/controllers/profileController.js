@@ -1,7 +1,62 @@
 const bcrypt = require('bcrypt');
+const fs = require('fs/promises');
+const path = require('path');
+const crypto = require('crypto');
 const User = require('../models/User');
 const { sellerProfileUpdateSchema, sellerPasswordChangeSchema } = require('../utils/validators');
 const { uploadImage } = require('../utils/cloudinary');
+
+const hasCloudinaryConfig = () => {
+  return Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+  );
+};
+
+const resolveFileExtension = (file) => {
+  const nameExt = path.extname(file.originalname || '').toLowerCase();
+  if (nameExt) {
+    return nameExt;
+  }
+
+  if (file.mimetype === 'image/png') {
+    return '.png';
+  }
+
+  return '.jpg';
+};
+
+const saveStoreLogoLocally = async (file) => {
+  const ext = resolveFileExtension(file);
+  const fileName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
+  const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'store-logos');
+  const filePath = path.join(uploadsDir, fileName);
+
+  await fs.mkdir(uploadsDir, { recursive: true });
+  await fs.writeFile(filePath, file.buffer);
+
+  return `/uploads/store-logos/${fileName}`;
+};
+
+const persistStoreLogo = async (file) => {
+  if (!file?.buffer) {
+    throw new Error('Invalid store logo upload');
+  }
+
+  if (hasCloudinaryConfig()) {
+    try {
+      const uploadedUrl = await uploadImage(file.buffer, 'store-logos');
+      if (uploadedUrl) {
+        return uploadedUrl;
+      }
+    } catch (_) {
+      // Fall back to local storage when remote upload fails.
+    }
+  }
+
+  return saveStoreLogoLocally(file);
+};
 
 const getProfile = async (req, res, next) => {
   try {
@@ -33,6 +88,8 @@ const parseContactDetails = (raw) => {
 const updateProfile = async (req, res, next) => {
   try {
     const body = {
+      storeName: req.body.storeName,
+      ownerName: req.body.ownerName,
       storeDescription: req.body.storeDescription,
       contactDetails: parseContactDetails(req.body.contactDetails),
       bankDetails: req.body.bankDetails,
@@ -55,6 +112,14 @@ const updateProfile = async (req, res, next) => {
       user.storeDescription = parsed.storeDescription;
     }
 
+    if (parsed.storeName !== undefined) {
+      user.storeName = parsed.storeName;
+    }
+
+    if (parsed.ownerName !== undefined) {
+      user.ownerName = parsed.ownerName;
+    }
+
     if (parsed.bankDetails !== undefined) {
       user.bankDetails = parsed.bankDetails;
     }
@@ -67,6 +132,7 @@ const updateProfile = async (req, res, next) => {
       if (!user.contactDetails) user.contactDetails = {};
       if (parsed.contactDetails.phone !== undefined) {
         user.contactDetails.phone = parsed.contactDetails.phone;
+        user.phoneNumber = parsed.contactDetails.phone;
       }
       if (parsed.contactDetails.email !== undefined) {
         user.contactDetails.email =
@@ -75,8 +141,7 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (req.file) {
-      const result = await uploadImage(req.file.path, 'store-logos');
-      user.storeLogo = result.url || `/uploads/store-logos/${req.file.filename}`;
+      user.storeLogo = await persistStoreLogo(req.file);
     }
 
     await user.save();

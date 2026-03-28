@@ -144,6 +144,8 @@ const analyticsQuerySchema = z
   });
 
 const sellerProfileUpdateSchema = z.object({
+  storeName: z.string().max(120).optional(),
+  ownerName: z.string().max(120).optional(),
   storeDescription: z.string().max(10000).optional(),
   bankDetails: z.string().max(500).optional(),
   businessAddress: z.string().max(500).optional(),

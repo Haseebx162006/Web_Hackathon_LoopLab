@@ -50,14 +50,13 @@ const couponSchema = new mongoose.Schema(
 
 couponSchema.index({ sellerId: 1, code: 1 }, { unique: true });
 
-couponSchema.pre('validate', function validateDates(next) {
+couponSchema.pre('validate', function validateDates() {
   if (this.endDate && this.startDate && this.endDate < this.startDate) {
     this.invalidate('endDate', 'endDate must be after startDate');
   }
   if (this.discountType === 'percentage' && this.discountValue > 100) {
     this.invalidate('discountValue', 'Percentage discount cannot exceed 100');
   }
-  next();
 });
 
 module.exports = mongoose.model('Coupon', couponSchema);

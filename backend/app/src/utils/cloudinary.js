@@ -10,7 +10,7 @@ cloudinary.config({
  * Uploads an image to Cloudinary using a buffer.
  * @param {Buffer} fileBuffer - The image file buffer.
  * @param {string} folder - The folder in Cloudinary to upload the image to.
- * @returns {Promise<Object>} Cloudinary API response.
+ * @returns {Promise<string>} Uploaded image URL.
  */
 const uploadImage = (fileBuffer, folder = 'products') => {
   return new Promise((resolve, reject) => {
@@ -20,7 +20,7 @@ const uploadImage = (fileBuffer, folder = 'products') => {
         if (error) {
           return reject(error);
         }
-        resolve(result);
+        resolve(result?.secure_url || result?.url);
       }
     );
     uploadStream.end(fileBuffer);

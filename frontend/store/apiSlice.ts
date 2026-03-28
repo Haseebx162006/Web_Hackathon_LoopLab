@@ -44,6 +44,15 @@ export interface SellerLoginRequest {
 
 export const apiSlice = createApi({
   reducerPath: 'api',
+  tagTypes: [
+    'SellerDashboard',
+    'SellerProduct',
+    'SellerInventory',
+    'SellerOrder',
+    'SellerCoupon',
+    'SellerAnalytics',
+    'SellerProfile',
+  ],
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
     prepareHeaders: (headers, { getState }) => {

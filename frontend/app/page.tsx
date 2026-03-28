@@ -1,3 +1,4 @@
+import Features from "@/components/Features";
 import Header from "@/components/Header";
 import HeroScroll from "@/components/HeroScroll";
 
@@ -7,6 +8,7 @@ export default function Home() {
       <Header />
       <main>
         <HeroScroll />
+        <Features />
       </main>
     </div>
   );

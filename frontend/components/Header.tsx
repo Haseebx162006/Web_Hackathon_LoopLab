@@ -27,12 +27,13 @@ const Header = () => {
         {/* Logo */}
         <div className="flex items-center">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-white font-bold transition-all duration-500 group-hover:bg-gray-800">
-              L
+            <div className="relative h-8 w-28 transition-transform duration-500 group-hover:scale-105">
+              <img 
+                src="/assets/logo/logo.png" 
+                alt="LoopBazar" 
+                className="h-full w-full object-contain"
+              />
             </div>
-            <span className="text-lg font-bold tracking-tight text-gray-900">
-              LoopBazar
-            </span>
           </Link>
         </div>
 

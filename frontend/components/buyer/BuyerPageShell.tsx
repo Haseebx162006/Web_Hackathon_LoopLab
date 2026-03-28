@@ -1,5 +1,6 @@
 import React from 'react';
 import BuyerHeader from './BuyerHeader';
+import BuyerSupportChat from './BuyerSupportChat';
 import Footer from '@/components/Footer';
 
 interface BuyerPageShellProps {
@@ -16,6 +17,7 @@ const BuyerPageShell = ({ children, withFooter = true }: BuyerPageShellProps) =>
         <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">{children}</div>
       </main>
       {withFooter ? <Footer /> : null}
+      <BuyerSupportChat />
     </div>
   );
 };

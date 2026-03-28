@@ -20,7 +20,7 @@ export const formatNumber = (value: number) => {
   return new Intl.NumberFormat('en-US').format(value);
 };
 
-export const formatDate = (value?: string | Date) => {
+export const formatDate = (value?: string | Date | null) => {
   if (!value) {
     return '--';
   }
@@ -37,7 +37,7 @@ export const formatDate = (value?: string | Date) => {
   });
 };
 
-export const formatDateTime = (value?: string | Date) => {
+export const formatDateTime = (value?: string | Date | null) => {
   if (!value) {
     return '--';
   }

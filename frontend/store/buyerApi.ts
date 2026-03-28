@@ -324,7 +324,7 @@ export const buyerApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['BuyerCart', 'BuyerOrder'],
+      invalidatesTags: [{ type: 'BuyerOrder', id: 'LIST' }, 'BuyerCart'],
     }),
 
     processBuyerPaymentWebhook: builder.mutation<BuyerPaymentWebhookResult, BuyerPaymentWebhookPayload>({
@@ -333,12 +333,24 @@ export const buyerApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['BuyerOrder'],
+      invalidatesTags: (_result, _error, arg) => [
+        ...arg.orderIds.map((orderId) => ({ type: 'BuyerOrder' as const, id: orderId })),
+        { type: 'BuyerOrder' as const, id: 'LIST' },
+      ],
     }),
 
     getBuyerOrders: builder.query<ApiResponse<BuyerOrder[]>, void>({
       query: () => '/buyer/orders',
-      providesTags: ['BuyerOrder'],
+      providesTags: (result) => {
+        if (!result?.data) {
+          return [{ type: 'BuyerOrder' as const, id: 'LIST' }];
+        }
+
+        return [
+          ...result.data.map((order) => ({ type: 'BuyerOrder' as const, id: order._id })),
+          { type: 'BuyerOrder' as const, id: 'LIST' },
+        ];
+      },
     }),
 
     requestBuyerOrderReturn: builder.mutation<ApiResponse<BuyerOrder>, string>({
@@ -346,7 +358,10 @@ export const buyerApi = apiSlice.injectEndpoints({
         url: `/buyer/orders/${orderId}/return`,
         method: 'POST',
       }),
-      invalidatesTags: ['BuyerOrder'],
+      invalidatesTags: (_result, _error, orderId) => [
+        { type: 'BuyerOrder', id: orderId },
+        { type: 'BuyerOrder', id: 'LIST' },
+      ],
     }),
 
     addBuyerReview: builder.mutation<ApiResponse<BuyerReview>, BuyerReviewPayload>({
@@ -366,7 +381,7 @@ export const buyerApi = apiSlice.injectEndpoints({
       }),
     }),
   }),
-  overrideExisting: false,
+  overrideExisting: true,
 });
 
 export const {

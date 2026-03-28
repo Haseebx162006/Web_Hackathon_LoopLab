@@ -178,7 +178,7 @@ const AnalyticsPage = () => {
                         return `$${numeric}`;
                       }}
                     />
-                    <Tooltip formatter={(value: number) => formatCurrency(Number(value))} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
                     <Area type="monotone" dataKey="revenue" stroke="#111827" strokeWidth={2} fill="url(#revenueFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -201,7 +201,7 @@ const AnalyticsPage = () => {
                     <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
                     <XAxis dataKey="period" stroke="#71717a" fontSize={12} />
                     <YAxis stroke="#71717a" fontSize={12} />
-                    <Tooltip formatter={(value: number) => formatNumber(Number(value))} />
+                    <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
                     <Bar dataKey="orders" fill="#111827" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

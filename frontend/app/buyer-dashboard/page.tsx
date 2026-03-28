@@ -15,7 +15,6 @@ import BuyerErrorState from '@/components/buyer/BuyerErrorState';
 import BuyerLoader from '@/components/buyer/BuyerLoader';
 import BuyerOrderStatusBadge from '@/components/buyer/BuyerOrderStatusBadge';
 import BuyerPageShell from '@/components/buyer/BuyerPageShell';
-import BuyerSupportChat from '@/components/buyer/BuyerSupportChat';
 import {
   formatCurrency,
   formatDateTime,
@@ -44,7 +43,12 @@ const BuyerDashboardPage = () => {
     isError,
     error,
     refetch,
-  } = useGetBuyerOrdersQuery(undefined, { skip: !isBuyer });
+  } = useGetBuyerOrdersQuery(undefined, {
+    skip: !isBuyer,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const [requestReturn, { isLoading: requestingReturn }] = useRequestBuyerOrderReturnMutation();
 
@@ -98,7 +102,7 @@ const BuyerDashboardPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid grid-cols-1 gap-6">
             <div className="space-y-4 rounded-[2rem] border border-zinc-100 bg-white/85 p-5 shadow-[0_14px_35px_-22px_rgba(0,0,0,0.25)]">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-2xl font-black tracking-tight text-zinc-900">Order History</h2>
@@ -200,7 +204,6 @@ const BuyerDashboardPage = () => {
               ) : null}
             </div>
 
-            <BuyerSupportChat enabled={isBuyer} />
           </div>
         </section>
       )}

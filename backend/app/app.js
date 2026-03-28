@@ -43,7 +43,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/', limiter);
 
 app.use('/api/auth', authRoutes);
-app.use('/api', protectedRoutes);
+// Keep legacy protected routes on an isolated path to avoid shadowing real buyer/admin endpoints.
+app.use('/api/protected', protectedRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api', productRoutes);
 

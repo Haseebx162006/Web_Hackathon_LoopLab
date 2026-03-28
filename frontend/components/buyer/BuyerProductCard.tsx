@@ -33,15 +33,18 @@ const BuyerProductCard = ({
   const rating = typeof product.rating === 'number' ? product.rating : 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-[2rem] border border-zinc-100 bg-white/80 p-4 shadow-[0_14px_35px_-18px_rgba(0,0,0,0.25)] transition hover:-translate-y-1 hover:shadow-[0_22px_45px_-22px_rgba(0,0,0,0.35)]">
-      <div className="absolute -right-14 -top-14 h-32 w-32 rounded-full bg-brand-pink/20 blur-3xl transition group-hover:bg-brand-purple/25" />
+    <article className="group relative overflow-hidden rounded-[2.4rem] border border-zinc-100 bg-white/90 p-4 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.4)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_28px_54px_-26px_rgba(0,0,0,0.5)]">
+      <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-[#D4A5FF]/30 blur-[75px] transition group-hover:bg-[#FFB7CE]/35" />
+      <div className="pointer-events-none absolute -bottom-20 -right-16 h-44 w-44 rounded-full bg-[#FFB7CE]/20 blur-[80px]" />
 
-      <div className={`relative overflow-hidden rounded-[1.5rem] bg-zinc-50 ${compact ? 'h-40' : 'h-52'}`}>
+      <div className={`relative overflow-hidden rounded-[1.9rem] ${compact ? 'h-44' : 'h-64'} bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.95),rgba(244,244,245,0.82)_60%,rgba(228,228,231,0.7))]`}>
         <img
           src={getPrimaryProductImage(product)}
           alt={product.productName}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
         />
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent" />
 
         {discountPercent > 0 ? (
           <span className="absolute left-3 top-3 rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
@@ -63,23 +66,20 @@ const BuyerProductCard = ({
             <IoHeartOutline className="text-base" />
           </button>
         ) : null}
+
+        <p className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-700 shadow-sm">
+          {product.category || 'Product'}
+        </p>
       </div>
 
-      <div className="relative mt-4 space-y-3">
-        <div className="space-y-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-zinc-400">{product.category || 'Uncategorized'}</p>
-          <Link href={`/products/${product._id}`} className="line-clamp-2 text-lg font-black leading-tight tracking-tight text-zinc-900 transition hover:text-zinc-600">
+      <div className="relative mt-4 space-y-4 px-1">
+        <div className="flex items-start justify-between gap-3">
+          <Link
+            href={`/products/${product._id}`}
+            className={`line-clamp-2 font-black uppercase italic leading-[0.92] tracking-tight text-zinc-900 transition hover:text-zinc-600 ${compact ? 'text-xl' : 'text-2xl'}`}
+          >
             {product.productName}
           </Link>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-lg font-black tracking-tight text-zinc-900">{formatCurrency(effectivePrice)}</p>
-            {product.discountPrice && product.discountPrice < product.price ? (
-              <p className="text-xs font-bold text-zinc-400 line-through">{formatCurrency(product.price)}</p>
-            ) : null}
-          </div>
           <div className="rounded-xl bg-zinc-100 px-2.5 py-1 text-xs font-black text-zinc-600">
             <span className="inline-flex items-center gap-1">
               <IoStar className="text-amber-500" />
@@ -88,7 +88,13 @@ const BuyerProductCard = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-end justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-2xl font-black tracking-tight text-zinc-900">{formatCurrency(effectivePrice)}</p>
+            {product.discountPrice && product.discountPrice < product.price ? (
+              <p className="text-xs font-bold text-zinc-400 line-through">{formatCurrency(product.price)}</p>
+            ) : null}
+          </div>
           <span
             className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
               stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
@@ -96,16 +102,27 @@ const BuyerProductCard = ({
           >
             {stock > 0 ? `${stock} in stock` : 'Out of stock'}
           </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href={`/products/${product._id}`}
+            className={`inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 ${
+              onAddToCart ? '' : 'col-span-2'
+            }`}
+          >
+            Details
+          </Link>
 
           {onAddToCart ? (
             <button
               type="button"
               onClick={() => onAddToCart(product)}
               disabled={stock <= 0}
-              className="inline-flex items-center gap-1 rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+              className="inline-flex items-center justify-center gap-1 rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
             >
               <IoCartOutline className="text-sm" />
-              Add
+              Add to Bag
             </button>
           ) : null}
         </div>

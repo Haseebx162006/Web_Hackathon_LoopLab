@@ -88,6 +88,8 @@ function handleDuplicateSku(err, res, next) {
   return next(err);
 }
 
+
+// Product Crud
 const createProduct = async (req, res, next) => {
   try {
     const body = productCreateSchema.parse(req.body);

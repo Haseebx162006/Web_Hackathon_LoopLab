@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import AuthChoice from "./AuthChoice";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Keep a small scroll state for subtle shadow/blur enhancement if needed
       setIsScrolled(window.scrollY > 20);
     };
 
@@ -18,7 +19,7 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="fixed top-6 left-0 right-0 z-50 mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 transition-all duration-500">
+    <header className="fixed top-6 left-0 right-0 z-50 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 transition-all duration-500">
       <nav 
         className={`glass flex items-center justify-between rounded-full px-8 py-2.5 transition-all duration-500 ${
             isScrolled ? "shadow-lg ring-1 ring-black/5" : "shadow-brand"
@@ -38,8 +39,8 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex md:items-center gap-10">
-          {["Home", "Shop", "About", "Contact"].map((item) => (
+        <div className="hidden lg:flex lg:items-center gap-10">
+          {["Home", "Products", "Events","Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}
               href={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}
@@ -52,6 +53,13 @@ const Header = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4">
+          <button 
+             onClick={() => setIsAuthOpen(true)}
+             className="hidden cursor-pointer sm:flex px-6 py-2.5 rounded-full bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-gray-800 active:scale-95 shadow-xl"
+          >
+             Login
+          </button>
+
           <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/5 transition-all duration-300 hover:bg-black hover:text-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -63,6 +71,7 @@ const Header = () => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
+              cursor-pointer
             >
               <circle cx="8" cy="21" r="1" />
               <circle cx="19" cy="21" r="1" />
@@ -75,7 +84,7 @@ const Header = () => {
 
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex md:hidden h-10 w-10 items-center justify-center rounded-xl bg-gray-100 transition-all hover:bg-black hover:text-white"
+            className="flex lg:hidden h-10 w-10 items-center justify-center rounded-xl bg-gray-100 transition-all hover:bg-black hover:text-white"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -96,8 +105,8 @@ const Header = () => {
 
       {/* Mobile Drawer */}
       {isMenuOpen && (
-        <div className="glass mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl md:hidden animate-fade-in-up">
-          {["Home", "Shop", "About", "Contact"].map((item) => (
+        <div className="glass mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up">
+          {["Home", "Products", "Events", "Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}
               href={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}
@@ -107,8 +116,17 @@ const Header = () => {
               {item}
             </Link>
           ))}
+          <button 
+             onClick={() => { setIsAuthOpen(true); setIsMenuOpen(false); }}
+             className="w-[80%] py-4 rounded-2xl bg-black text-white text-xs font-black uppercase tracking-[0.3em] shadow-xl"
+          >
+             Login
+          </button>
         </div>
       )}
+
+      {/* Auth Choice Modal */}
+      <AuthChoice isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </header>
   );
 };

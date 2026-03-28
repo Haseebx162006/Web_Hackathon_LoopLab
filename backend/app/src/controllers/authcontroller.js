@@ -20,23 +20,41 @@ const signup = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(validatedData.password, salt);
 
-    const user = await User.create({
-      name: validatedData.name,
+    const userData = {
       email: validatedData.email,
       password: hashedPassword,
-      role: validatedData.role || 'buyer',
+      role: validatedData.role,
       oauthProvider: null,
-    });
+    };
+
+    // Buyer specific 
+    if (validatedData.role === 'buyer') {
+      userData.name = validatedData.name;
+    } 
+    // Seller specific
+    else if (validatedData.role === 'seller') {
+      userData.storeName = validatedData.storeName;
+      userData.ownerName = validatedData.ownerName;
+      userData.phoneNumber = validatedData.phoneNumber;
+      userData.businessAddress = validatedData.businessAddress;
+      userData.bankDetails = validatedData.bankDetails;
+    }
+
+    const user = await User.create(userData);
 
     res.status(201).json({
-      _id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      success: true,
       token: generateToken(user._id, user.role),
+      role: user.role
     });
   } catch (error) {
-    if (error instanceof z.ZodError) res.status(400);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+         success: false, 
+         message: error.errors[0].message, 
+         path: error.errors[0].path 
+      });
+    }
     next(error);
   }
 };
@@ -63,6 +81,7 @@ const login = async (req, res, next) => {
     }
 
     res.status(200).json({
+      success: true,
       _id: user.id,
       name: user.name,
       email: user.email,
@@ -70,7 +89,12 @@ const login = async (req, res, next) => {
       token: generateToken(user._id, user.role),
     });
   } catch (error) {
-    if (error instanceof z.ZodError) res.status(400);
+    if (error instanceof z.ZodError) {
+       return res.status(400).json({ 
+         success: false, 
+         message: error.errors[0].message 
+       });
+    }
     next(error);
   }
 };

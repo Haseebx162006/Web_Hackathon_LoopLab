@@ -7,6 +7,7 @@ require('./src/config/passport')(passport);
 
 const authRoutes = require('./src/routes/authRoutes');
 const protectedRoutes = require('./src/routes/protectedRoutes');
+const sellerRoutes = require('./src/routes/sellerRoutes');
 const errorHandler = require('./src/middleware/errorMiddleware');
 const limiter = require('./src/middleware/rateLimiter');
 
@@ -27,6 +28,7 @@ app.use('/api/', limiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api', protectedRoutes);
+app.use('/api/seller', sellerRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

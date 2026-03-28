@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const User = require('../models/User');
-const { signupSchema, loginSchema } = require('../utils/validators');
+const { signupSchema, loginSchema, sellerLoginSchema } = require('../utils/validators');
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -99,6 +99,51 @@ const login = async (req, res, next) => {
   }
 };
 
+const sellerLogin = async (req, res, next) => {
+  try {
+    const validatedData = sellerLoginSchema.parse(req.body);
+
+    // Finding user by email OR phone number where role is 'seller'
+    const user = await User.findOne({
+      $or: [{ email: validatedData.emailOrPhone }, { phoneNumber: validatedData.emailOrPhone }],
+      role: 'seller'
+    }).select('+password');
+
+    if (!user) {
+      res.status(401);
+      throw new Error('Invalid credentials or not a seller account');
+    }
+
+    if (!user.password) {
+      res.status(401);
+      throw new Error('This account uses social login. Sign in with your provider.');
+    }
+
+    const isMatch = await bcrypt.compare(validatedData.password, user.password);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error('Invalid credentials or not a seller account');
+    }
+
+    res.status(200).json({
+      success: true,
+      _id: user.id,
+      storeName: user.storeName,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id, user.role),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.errors[0].message
+      });
+    }
+    next(error);
+  }
+};
+
 const oauthSuccess = (req, res) => {
   const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
   const token = generateToken(req.user._id, req.user.role);
@@ -118,6 +163,7 @@ const oauthFailure = (req, res) => {
 module.exports = {
   signup,
   login,
+  sellerLogin,
   oauthSuccess,
   oauthFailure,
   generateToken,

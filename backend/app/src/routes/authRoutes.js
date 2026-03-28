@@ -1,6 +1,6 @@
 const express = require('express');
 const passport = require('passport');
-const { signup, login, oauthSuccess, oauthFailure } = require('../controllers/authController');
+const { signup, login, sellerLogin, oauthSuccess, oauthFailure } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -27,6 +27,7 @@ function strategyConfigured(provider) {
 
 router.post('/signup', signup);
 router.post('/login', login);
+router.post('/seller-login', sellerLogin);
 
 router.get('/oauth/failure', oauthFailure);
 

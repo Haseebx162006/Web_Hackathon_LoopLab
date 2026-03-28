@@ -80,7 +80,7 @@ const SignupForm = () => {
         toast.success(`Welcome to the Store, ${role === 'buyer' ? formData.name : formData.storeName}!`);
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
-        router.push(data.role === 'seller' ? "/seller-dashboard" : "/dashboard");
+        router.push(data.role === 'seller' ? "/seller-dashboard" : "/profile");
       }
     } catch (err: any) {
       // RTK Query throws the rejected response

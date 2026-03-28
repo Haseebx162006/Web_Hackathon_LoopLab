@@ -49,10 +49,11 @@ const signup = async (req, res, next) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      const issue = error.issues[0];
       return res.status(400).json({ 
          success: false, 
-         message: error.errors[0].message, 
-         path: error.errors[0].path 
+         message: issue?.message || 'Validation failed', 
+         path: issue?.path 
       });
     }
     next(error);
@@ -99,7 +100,7 @@ const login = async (req, res, next) => {
     if (error instanceof z.ZodError) {
        return res.status(400).json({ 
          success: false, 
-         message: error.errors[0].message 
+         message: error.issues[0]?.message || 'Validation failed' 
        });
     }
     next(error);
@@ -151,7 +152,7 @@ const sellerLogin = async (req, res, next) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        message: error.errors[0].message
+        message: error.issues[0]?.message || 'Validation failed'
       });
     }
     next(error);

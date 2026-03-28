@@ -17,7 +17,7 @@ const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
 const getRedirectPathByRole = (role: string) => {
   if (role === "admin") return "/admin-dashboard";
   if (role === "seller") return "/seller-dashboard";
-  return "/dashboard";
+  return "/profile";
 };
 
 const LoginForm = () => {

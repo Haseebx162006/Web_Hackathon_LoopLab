@@ -3,7 +3,19 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const products = [
+interface Product {
+  id: number;
+  name: string;
+  price: string;
+  category: string;
+  image: string;
+  color: string;
+  accent: string;
+  btnColor: string;
+  className: string;
+}
+
+const products: Product[] = [
   {
     id: 1,
     name: "Loop Watch S1",
@@ -94,7 +106,7 @@ const products = [
   },
 ];
 
-const ProductCard = ({ product, index }: { product: any; index: number }) => {
+const ProductCard = ({ product, index }: { product: Product; index: number }) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}

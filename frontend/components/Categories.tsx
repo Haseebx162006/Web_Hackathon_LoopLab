@@ -3,7 +3,18 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const categories = [
+interface Category {
+  id: string;
+  name: string;
+  label: string;
+  image: string;
+  color: string;
+  accent: string;
+  className: string;
+  assetClass: string;
+}
+
+const categories: Category[] = [
   {
     id: "01",
     name: "Cyber Audio",
@@ -46,7 +57,7 @@ const categories = [
   },
 ];
 
-const CategoryCard = ({ category, index }: { category: any; index: number }) => {
+const CategoryCard = ({ category, index }: { category: Category; index: number }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}

@@ -17,15 +17,10 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
   const [storedToken, setStoredToken] = useState<string | null>(null);
   const [storedRole, setStoredRole] = useState<"buyer" | "seller" | "admin" | null>(null);
 
   const { isAuthenticated, token, role } = useSelector((state: RootState) => state.auth);
-
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
 
   useEffect(() => {
     const syncAuthFromStorage = () => {
@@ -46,7 +41,7 @@ const Header = () => {
     return () => window.removeEventListener("storage", syncAuthFromStorage);
   }, []);
 
-  const isLoggedIn = hasMounted && (isAuthenticated || Boolean(token) || Boolean(storedToken));
+  const isLoggedIn = isAuthenticated || Boolean(token) || Boolean(storedToken);
   const profileRoute = getProfileRoute(role || storedRole);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useMemo } from 'react';
+import React, { useMemo, useSyncExternalStore } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import type { RootState } from '@/store/store';
@@ -24,9 +24,19 @@ import {
   toSentenceCase,
 } from '@/utils/buyerUtils';
 
+const hydrationSubscribe = () => () => {};
+const getHydratedClientSnapshot = () => true;
+const getHydratedServerSnapshot = () => false;
+
 const BuyerDashboardPage = () => {
   const { role, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const isBuyer = (role === 'buyer' && isAuthenticated) || isBuyerAuthenticated();
+  const isHydrated = useSyncExternalStore(
+    hydrationSubscribe,
+    getHydratedClientSnapshot,
+    getHydratedServerSnapshot
+  );
+
+  const isBuyer = isHydrated && ((role === 'buyer' && isAuthenticated) || isBuyerAuthenticated());
 
   const {
     data: ordersResponse,

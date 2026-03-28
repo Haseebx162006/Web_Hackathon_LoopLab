@@ -1,9 +1,19 @@
 "use client";
 
 import React, { useRef } from "react";
-import { motion, useScroll, useTransform, Variants } from "framer-motion";
+import { motion, useScroll, useTransform, type MotionValue } from "framer-motion";
 
-const features = [
+interface Feature {
+  image: string;
+  title: string;
+  desc: string;
+  color: string;
+  accent: string;
+  btnColor: string;
+  blobColor: string;
+}
+
+const features: Feature[] = [
   {
     image: "/assets/features/truck.png",
     title: "Free Shipping",
@@ -42,7 +52,15 @@ const features = [
   },
 ];
 
-const FeatureCard = ({ feature, index, scrollYProgress }: { feature: any, index: number, scrollYProgress: any }) => {
+const FeatureCard = ({
+  feature,
+  index,
+  scrollYProgress,
+}: {
+  feature: Feature;
+  index: number;
+  scrollYProgress: MotionValue<number>;
+}) => {
   const targetScale = 1 - (features.length - index) * 0.05;
   const range = [index * 0.25, (index + 1) * 0.25];
   

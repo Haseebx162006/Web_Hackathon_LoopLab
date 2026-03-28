@@ -258,8 +258,10 @@ const ProductManagementPage = () => {
       }
 
       if ((result.warnings ?? []).length > 0) {
-        const firstWarning = result.warnings[0];
-        toast(`Row ${firstWarning.row}: ${firstWarning.message}`);
+        const firstWarning = result.warnings?.[0];
+        if (firstWarning) {
+          toast(`Row ${firstWarning.row}: ${firstWarning.message}`);
+        }
       }
 
       setBulkFile(null);

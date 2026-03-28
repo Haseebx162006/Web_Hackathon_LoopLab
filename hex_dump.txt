@@ -1,0 +1,20 @@
+﻿               <div className="h-px w-28 bg-white/40 shadow-sm" />
+               <span className="text-white/40 text-[11px] uppercase font-black tracking-[0.9em] drop-shadow-md">The Gallery Experience</span>
+            </motion.div>
+         </div>
+      </div>
+
+      {/* Right Form Side - Pure Seamless Boutique */}
+      <div className="flex-1 flex flex-col items-center bg-[#FFF9FA] relative">
+         {/* Navigation */}
+         <nav className="w-full p-8 flex justify-between items-center z-50">
+            <Link href="/" className="group flex items-center gap-4 text-black transition-all">
+               <div className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all group-active:scale-95">
+                  <IoArrowBack className="text-lg" />
+               </div>
+               <div className="flex flex-col">
+                  <span className="text-[9px] uppercase font-black tracking-[0.3em] text-gray-400 group-hover:text-black transition-colors">Return to</span>
+                  <span className="text-[10px] uppercase font-black tracking-widest font-bold">Home</span>
+               </div>
+            </Link>
+

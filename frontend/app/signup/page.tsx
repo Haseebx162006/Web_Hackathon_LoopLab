@@ -6,12 +6,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { IoArrowBack, IoMail, IoLockClosed, IoPerson, IoStorefront, IoCall, IoLocation, IoCard, IoChevronForward, IoSparkles } from "react-icons/io5";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useSignupMutation } from "../../store/apiSlice";
 import { div } from "framer-motion/client";
 
 const SignupForm = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+
+  const [signup, { isLoading: isSigningUp }] = useSignupMutation();
 
   useEffect(() => {
     const r = searchParams.get("role");
@@ -65,51 +68,40 @@ const SignupForm = () => {
         })
       };
 
-      const res = await fetch("http://localhost:5000/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
+      const data = await signup(payload).unwrap();
 
       if (data.success) {
         toast.success(`Welcome to the Store, ${role === 'buyer' ? formData.name : formData.storeName}!`);
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
-        router.push("/");
-      } else {
-        toast.error(data.message || "Something went wrong");
+        router.push(data.role === 'seller' ? "/seller-dashboard" : "/dashboard");
       }
-    } catch (err) {
-      toast.error("Failed to connect to the server");
+    } catch (err: any) {
+      // RTK Query throws the rejected response
+      toast.error(err?.data?.message || "Failed to connect to the server");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (!role) return null;
+  if (!role) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col md:flex-row overflow-hidden font-sans">
-      {/* Left Visual Side (The Vanguard Sanctuary) - Maximized Readability */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-black group">
-         <motion.div 
-            key={role}
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            className="absolute inset-0"
-         >
-            <img 
-               src={role === 'buyer' ? '/assets/auth/mall.png' : '/assets/auth/store.png'} 
-               alt="Vanguard Sanctuary" 
-               className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-[12s] ease-linear"
-            />
-         </motion.div>
-         
-         {/* Artistic Overlay - Extreme Contrast Gradient */}
-         <div className="absolute inset-0 bg-linear-to-r from-black/98 via-black/40 to-transparent" />
+    <div className="min-h-screen bg-black flex selection:bg-amber-500/30">
+      {/* Left Column: Extreme Aesthetic Visual */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="hidden lg:flex lg:w-3/5 relative overflow-hidden bg-zinc-900 shadow-2xl"
+      >
+        {/* Artistic Overlay - Extreme Contrast Gradient */}
+        <div className="absolute inset-0 bg-linear-to-r from-black/98 via-black/40 to-transparent" />
          
          <div className="relative z-10 p-24 flex flex-col justify-between h-full w-full">
             <motion.div 
@@ -155,7 +147,7 @@ const SignupForm = () => {
                <span className="text-white/40 text-[11px] uppercase font-black tracking-[0.9em] drop-shadow-md">The Gallery Experience</span>
             </motion.div>
          </div>
-      </div>
+         </motion.div>
 
       {/* Right Form Side - Pure Seamless Boutique */}
       <div className="flex-1 flex flex-col items-center bg-[#FFF9FA] relative">

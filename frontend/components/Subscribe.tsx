@@ -33,7 +33,7 @@ const Subscribe = () => {
                 className="relative z-10"
              >
                 <img 
-                  src="/assets/features/prize.png" 
+                  src="/assets/subscribe/man.png" 
                   alt="Subscription Reward" 
                   className="w-full h-auto drop-shadow-[0_30px_50px_rgba(0,0,0,0.15)]"
                 />
@@ -86,16 +86,10 @@ const Subscribe = () => {
         </motion.div>
       </div>
 
-      {/* Floating Decorative Elements */}
-      <motion.div 
-         animate={{ rotate: [0, 360] }}
-         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-         className="absolute -top-20 -left-0 text-[30vw] font-black text-black/[1] pointer-events-none select-none"
-      >
-         LOOP
-      </motion.div>
+  
     </section>
   );
 };
+
 
 export default Subscribe;

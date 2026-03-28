@@ -86,6 +86,11 @@ pip-log.txt
 docker-compose.override.yml
 
 # ==============================
+# Uploads (seller logos, etc.)
+# ==============================
+uploads/
+
+# ==============================
 # Temporary Files
 # ==============================
 tmp/

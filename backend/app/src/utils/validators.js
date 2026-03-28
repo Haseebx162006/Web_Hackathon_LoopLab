@@ -89,6 +89,86 @@ const bulkInventoryBodySchema = z.object({
   items: z.array(bulkInventoryItemSchema).min(1, 'At least one item is required'),
 });
 
+const sellerOrderStatusSchema = z.object({
+  status: z.enum(['confirmed', 'packed', 'shipped']),
+  trackingId: z.string().trim().max(200).optional().nullable(),
+});
+
+const couponCreateSchema = z
+  .object({
+    code: z.string().min(2, 'Code is required').max(64),
+    discountType: z.enum(['percentage', 'flat']),
+    discountValue: z.number().nonnegative(),
+    minOrderAmount: z.number().nonnegative().default(0),
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+    isActive: z.boolean().optional().default(true),
+  })
+  .refine((d) => d.endDate >= d.startDate, {
+    message: 'endDate must be on or after startDate',
+    path: ['endDate'],
+  })
+  .superRefine((d, ctx) => {
+    if (d.discountType === 'percentage' && d.discountValue > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Percentage discount cannot exceed 100',
+        path: ['discountValue'],
+      });
+    }
+  });
+
+const couponUpdateSchema = z
+  .object({
+    code: z.string().min(2).max(64).optional(),
+    discountType: z.enum(['percentage', 'flat']).optional(),
+    discountValue: z.number().nonnegative().optional(),
+    minOrderAmount: z.number().nonnegative().optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((data) => Object.keys(data).some((k) => data[k] !== undefined), {
+    message: 'At least one field is required',
+  });
+
+const analyticsQuerySchema = z
+  .object({
+    startDate: z.coerce.date(),
+    endDate: z.coerce.date(),
+    groupBy: z.enum(['day', 'week', 'month']).optional().default('day'),
+  })
+  .refine((d) => d.endDate >= d.startDate, {
+    message: 'endDate must be on or after startDate',
+    path: ['endDate'],
+  });
+
+const sellerProfileUpdateSchema = z.object({
+  storeDescription: z.string().max(10000).optional(),
+  contactDetails: z
+    .object({
+      phone: z.string().max(50).optional(),
+      email: z.union([z.string().email(), z.literal('')]).optional(),
+    })
+    .optional(),
+});
+
+const sellerPasswordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'New password must be at least 6 characters'),
+    confirmNewPassword: z.string().min(1, 'Confirm your new password'),
+  })
+  .superRefine((val, ctx) => {
+    if (val.newPassword !== val.confirmNewPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "New passwords don't match",
+        path: ['confirmNewPassword'],
+      });
+    }
+  });
+
 module.exports = {
   baseSignupSchema,
   signupSchema,
@@ -99,4 +179,10 @@ module.exports = {
   productBulkRowSchema,
   inventoryUpdateSchema,
   bulkInventoryBodySchema,
+  sellerOrderStatusSchema,
+  couponCreateSchema,
+  couponUpdateSchema,
+  analyticsQuerySchema,
+  sellerProfileUpdateSchema,
+  sellerPasswordChangeSchema,
 };

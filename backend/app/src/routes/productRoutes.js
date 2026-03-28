@@ -6,7 +6,12 @@ const {
   updateProduct,
   deleteProduct,
   bulkProductsFromExcel,
+  uploadProductImages,
+  getProductImages,
 } = require('../controllers/productController');
+const uploadImageMiddleware = require('../middleware/uploadMiddleware');
+const { protect } = require('../middleware/authMiddleware');
+const { isSeller } = require('../middleware/roleMiddleware');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -23,12 +28,14 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/products', createProduct);
-router.get('/products', listProducts);
-router.put('/products/:id', updateProduct);
-router.delete('/products/:id', deleteProduct);
+router.post('/products', protect, isSeller, createProduct);
+router.get('/products', protect, isSeller, listProducts);
+router.put('/products/:id', protect, isSeller, updateProduct);
+router.delete('/products/:id', protect, isSeller, deleteProduct);
 router.post(
   '/products/bulk',
+  protect,
+  isSeller,
   (req, res, next) => {
     upload.single('file')(req, res, (err) => {
       if (err) {
@@ -40,5 +47,7 @@ router.post(
   },
   bulkProductsFromExcel
 );
+router.post('/products/:id/images', protect, isSeller, uploadImageMiddleware.array('images', 5), uploadProductImages);
+router.get('/products/:id/images', getProductImages);
 
 module.exports = router;

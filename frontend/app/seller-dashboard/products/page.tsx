@@ -37,6 +37,11 @@ interface ProductFormState {
   imageUrlsInput: string;
 }
 
+interface BulkImportMessage {
+  row: number;
+  message: string;
+}
+
 const getInitialFormState = (): ProductFormState => ({
   productName: '',
   description: '',
@@ -83,6 +88,8 @@ const ProductManagementPage = () => {
   const [formState, setFormState] = useState<ProductFormState>(getInitialFormState());
   const [formError, setFormError] = useState<string | null>(null);
   const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkWarnings, setBulkWarnings] = useState<BulkImportMessage[]>([]);
+  const [bulkErrors, setBulkErrors] = useState<BulkImportMessage[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
 
   const {
@@ -238,10 +245,27 @@ const ProductManagementPage = () => {
 
     try {
       const result = await bulkUpload(bulkFile).unwrap();
-      const { created, failed } = result.summary;
-      toast.success(`Bulk upload complete. Created: ${created}, Failed: ${failed}`);
+      const { created, failed, warned = result.warnings?.length ?? 0 } = result.summary;
+
+      setBulkWarnings(result.warnings ?? []);
+      setBulkErrors(result.errors ?? []);
+
+      toast.success(`Bulk upload complete. Created: ${created}, Failed: ${failed}, Auto-fixed: ${warned}`);
+
+      if ((result.errors ?? []).length > 0) {
+        const firstError = result.errors[0];
+        toast.error(`Row ${firstError.row}: ${firstError.message}`);
+      }
+
+      if ((result.warnings ?? []).length > 0) {
+        const firstWarning = result.warnings[0];
+        toast(`Row ${firstWarning.row}: ${firstWarning.message}`);
+      }
+
       setBulkFile(null);
     } catch (requestError) {
+      setBulkWarnings([]);
+      setBulkErrors([]);
       toast.error(normalizeApiError(requestError, 'Bulk upload failed'));
     }
   };
@@ -276,6 +300,42 @@ const ProductManagementPage = () => {
             <SellerButton label="Upload File" loading={bulkUploading} onClick={handleBulkUpload} />
           </div>
         </div>
+
+        {bulkWarnings.length > 0 ? (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-700">Auto-filled rows</p>
+            <ul className="mt-2 space-y-2">
+              {bulkWarnings.slice(0, 8).map((warning) => (
+                <li key={`warning-${warning.row}-${warning.message}`} className="text-xs font-semibold text-amber-800">
+                  Row {warning.row}: {warning.message}
+                </li>
+              ))}
+            </ul>
+            {bulkWarnings.length > 8 ? (
+              <p className="mt-2 text-[11px] font-semibold text-amber-700">
+                +{bulkWarnings.length - 8} more warning(s)
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {bulkErrors.length > 0 ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-rose-700">Failed rows</p>
+            <ul className="mt-2 space-y-2">
+              {bulkErrors.slice(0, 8).map((importError) => (
+                <li key={`error-${importError.row}-${importError.message}`} className="text-xs font-semibold text-rose-800">
+                  Row {importError.row}: {importError.message}
+                </li>
+              ))}
+            </ul>
+            {bulkErrors.length > 8 ? (
+              <p className="mt-2 text-[11px] font-semibold text-rose-700">
+                +{bulkErrors.length - 8} more error(s)
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </SellerCard>
 
       {isError ? (

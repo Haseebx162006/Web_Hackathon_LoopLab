@@ -14,10 +14,30 @@ import type { AppDispatch } from "../../store/store";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
 
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "data" in error &&
+    typeof (error as { data?: unknown }).data === "object"
+  ) {
+    const data = (error as { data?: { message?: unknown } }).data;
+    if (data && typeof data.message === "string") {
+      return data.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 const getRedirectPathByRole = (role: string) => {
   if (role === "admin") return "/admin-dashboard";
   if (role === "seller") return "/seller-dashboard";
-  return "/profile";
+  return "/buyer-dashboard";
 };
 
 const LoginForm = () => {
@@ -85,8 +105,8 @@ const LoginForm = () => {
 
       toast.success(`Welcome back, ${data.name || data.storeName || "Member"}!`);
       router.push(getRedirectPathByRole(data.role));
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Invalid credentials");
+    } catch (error: unknown) {
+      toast.error(getApiErrorMessage(error, "Invalid credentials"));
     } finally {
       setIsLoading(false);
     }

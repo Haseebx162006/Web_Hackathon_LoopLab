@@ -6,7 +6,7 @@ const getCart = async (req, res, next) => {
   try {
     let cart = await Cart.findOne({ buyerId: req.user._id }).populate({
       path: 'items.product',
-      select: 'productName price discountPrice images stock'
+      select: 'productName price discountPrice productImages stockQuantity status'
     });
 
     if (!cart) {
@@ -16,6 +16,9 @@ const getCart = async (req, res, next) => {
     // Subtotal calculation
     let subtotal = 0;
     cart.items.forEach(item => {
+      if (!item.product) {
+        return;
+      }
       const price = item.product.discountPrice || item.product.price;
       subtotal += price * item.quantity;
     });
@@ -29,16 +32,32 @@ const getCart = async (req, res, next) => {
 const addToCart = async (req, res, next) => {
   try {
     const { productId, quantity = 1 } = req.body;
+    const quantityNumber = Number(quantity);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       res.status(400);
       return next(new Error('Invalid product id'));
     }
 
+    if (!Number.isFinite(quantityNumber) || quantityNumber <= 0) {
+      res.status(400);
+      return next(new Error('Quantity must be a positive number'));
+    }
+
     const product = await Product.findById(productId);
     if (!product) {
       res.status(404);
       return next(new Error('Product not found'));
+    }
+
+    if (product.status !== 'approved') {
+      res.status(400);
+      return next(new Error('Only approved products can be added to cart'));
+    }
+
+    if (product.stockQuantity != null && product.stockQuantity < quantityNumber) {
+      res.status(400);
+      return next(new Error('Requested quantity exceeds available stock'));
     }
 
     let cart = await Cart.findOne({ buyerId: req.user._id });
@@ -48,9 +67,14 @@ const addToCart = async (req, res, next) => {
 
     const existingItemIndex = cart.items.findIndex(item => item.product.toString() === productId);
     if (existingItemIndex > -1) {
-      cart.items[existingItemIndex].quantity += quantity;
+      const nextQuantity = cart.items[existingItemIndex].quantity + quantityNumber;
+      if (product.stockQuantity != null && nextQuantity > product.stockQuantity) {
+        res.status(400);
+        return next(new Error('Requested quantity exceeds available stock'));
+      }
+      cart.items[existingItemIndex].quantity = nextQuantity;
     } else {
-      cart.items.push({ product: productId, quantity });
+      cart.items.push({ product: productId, quantity: quantityNumber });
     }
 
     await cart.save();
@@ -63,6 +87,7 @@ const addToCart = async (req, res, next) => {
 const updateCartQuantity = async (req, res, next) => {
   try {
     const { productId, quantity } = req.body;
+    const quantityNumber = Number(quantity);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       res.status(400);
@@ -75,12 +100,32 @@ const updateCartQuantity = async (req, res, next) => {
       return next(new Error('Cart not found'));
     }
 
+    if (!Number.isFinite(quantityNumber)) {
+      res.status(400);
+      return next(new Error('Quantity must be a valid number'));
+    }
+
+    const product = await Product.findById(productId).select('stockQuantity status');
+    if (!product) {
+      res.status(404);
+      return next(new Error('Product not found'));
+    }
+
+    if (product.status !== 'approved') {
+      res.status(400);
+      return next(new Error('Product is not available for purchase'));
+    }
+
     const existingItemIndex = cart.items.findIndex(item => item.product.toString() === productId);
     if (existingItemIndex > -1) {
-      if (quantity <= 0) {
+      if (quantityNumber <= 0) {
         cart.items.splice(existingItemIndex, 1);
       } else {
-        cart.items[existingItemIndex].quantity = quantity;
+        if (product.stockQuantity != null && quantityNumber > product.stockQuantity) {
+          res.status(400);
+          return next(new Error('Requested quantity exceeds available stock'));
+        }
+        cart.items[existingItemIndex].quantity = quantityNumber;
       }
       await cart.save();
       res.status(200).json({ success: true, data: cart });

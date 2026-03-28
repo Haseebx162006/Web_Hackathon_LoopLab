@@ -250,8 +250,13 @@ export interface BulkProductsResponse {
     totalRows: number;
     created: number;
     failed: number;
+    warned?: number;
   };
   created: SellerProduct[];
+  warnings?: Array<{
+    row: number;
+    message: string;
+  }>;
   errors: Array<{
     row: number;
     message: string;

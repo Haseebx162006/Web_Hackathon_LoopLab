@@ -5,7 +5,7 @@ const getBuyerOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ buyerId: req.user._id })
       .populate('sellerId', 'storeName')
-      .populate('items.product', 'productName images price discountPrice category')
+      .populate('items.product', 'productName productImages price discountPrice category stockQuantity')
       .sort({ createdAt: -1 });
 
     res.status(200).json({ success: true, data: orders });

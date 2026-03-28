@@ -6,7 +6,7 @@ const getWishlist = async (req, res, next) => {
   try {
     let wishlist = await Wishlist.findOne({ buyerId: req.user._id }).populate({
       path: 'items',
-      select: 'productName price discountPrice images rating'
+      select: 'productName price discountPrice productImages status stockQuantity'
     });
 
     if (!wishlist) {
@@ -34,12 +34,18 @@ const addToWishlist = async (req, res, next) => {
       return next(new Error('Product not found'));
     }
 
+    if (product.status !== 'approved') {
+      res.status(400);
+      return next(new Error('Only approved products can be added to wishlist'));
+    }
+
     let wishlist = await Wishlist.findOne({ buyerId: req.user._id });
     if (!wishlist) {
       wishlist = await Wishlist.create({ buyerId: req.user._id, items: [] });
     }
 
-    if (!wishlist.items.includes(productId)) {
+    const exists = wishlist.items.some((id) => id.toString() === productId);
+    if (!exists) {
       wishlist.items.push(productId);
       await wishlist.save();
     }

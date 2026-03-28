@@ -9,8 +9,8 @@ import type { RootState } from "../store/store";
 const getProfileRoute = (role: "buyer" | "seller" | "admin" | null) => {
   if (role === "admin") return "/admin-dashboard";
   if (role === "seller") return "/seller-dashboard";
-  if (role === "buyer") return "/profile";
-  return "/profile";
+  if (role === "buyer") return "/buyer-dashboard";
+  return "/buyer-dashboard";
 };
 
 const Header = () => {

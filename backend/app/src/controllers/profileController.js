@@ -27,7 +27,7 @@ const resolveFileExtension = (file) => {
   return '.jpg';
 };
 
-const saveStoreLogoLocally = async (file) => {
+const saveStoreLogoLocally = async (file, req) => {
   const ext = resolveFileExtension(file);
   const fileName = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`;
   const uploadsDir = path.join(__dirname, '..', '..', 'uploads', 'store-logos');
@@ -36,10 +36,11 @@ const saveStoreLogoLocally = async (file) => {
   await fs.mkdir(uploadsDir, { recursive: true });
   await fs.writeFile(filePath, file.buffer);
 
-  return `/uploads/store-logos/${fileName}`;
+  const origin = `${req.protocol}://${req.get('host')}`;
+  return `${origin}/uploads/store-logos/${fileName}`;
 };
 
-const persistStoreLogo = async (file) => {
+const persistStoreLogo = async (file, req) => {
   if (!file?.buffer) {
     throw new Error('Invalid store logo upload');
   }
@@ -55,7 +56,7 @@ const persistStoreLogo = async (file) => {
     }
   }
 
-  return saveStoreLogoLocally(file);
+  return saveStoreLogoLocally(file, req);
 };
 
 const getProfile = async (req, res, next) => {
@@ -141,7 +142,7 @@ const updateProfile = async (req, res, next) => {
     }
 
     if (req.file) {
-      user.storeLogo = await persistStoreLogo(req.file);
+      user.storeLogo = await persistStoreLogo(req.file, req);
     }
 
     await user.save();

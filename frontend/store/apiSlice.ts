@@ -52,6 +52,10 @@ export const apiSlice = createApi({
     'SellerCoupon',
     'SellerAnalytics',
     'SellerProfile',
+    'BuyerProduct',
+    'BuyerCart',
+    'BuyerWishlist',
+    'BuyerOrder',
   ],
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',

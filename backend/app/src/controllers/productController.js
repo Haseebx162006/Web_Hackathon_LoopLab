@@ -56,6 +56,82 @@ function parseImagesCell(raw) {
     .filter(Boolean);
 }
 
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randomToken(length = 6) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return out;
+}
+
+function buildAutoSku(rowNum) {
+  return `AUTO-${Date.now().toString(36).toUpperCase()}-${rowNum}-${randomToken(4)}`;
+}
+
+function applyBulkFallbacks(rawData, rowNum) {
+  const data = { ...rawData };
+  const rowWarnings = [];
+
+  if (!data.productName || !String(data.productName).trim()) {
+    data.productName = `Imported Product ${rowNum}-${randomToken(3)}`;
+    rowWarnings.push(`productName missing, auto-filled: ${data.productName}`);
+  }
+
+  if (!data.description || !String(data.description).trim()) {
+    data.description = `Auto-generated description for imported product row ${rowNum}.`;
+    rowWarnings.push('description missing, auto-filled default description');
+  }
+
+  if (!data.category || !String(data.category).trim()) {
+    data.category = 'General';
+    rowWarnings.push('category missing, auto-filled: General');
+  }
+
+  if (!Number.isFinite(data.price) || data.price < 0) {
+    data.price = randomInt(10, 500);
+    rowWarnings.push(`price missing/invalid, auto-filled: ${data.price}`);
+  }
+
+  if (!data.skuCode || !String(data.skuCode).trim()) {
+    data.skuCode = buildAutoSku(rowNum);
+    rowWarnings.push(`skuCode missing, auto-filled: ${data.skuCode}`);
+  }
+
+  if (!Number.isInteger(data.stockQuantity) || data.stockQuantity < 0) {
+    data.stockQuantity = randomInt(1, 50);
+    rowWarnings.push(`stockQuantity missing/invalid, auto-filled: ${data.stockQuantity}`);
+  }
+
+  if (data.discountPrice != null && (!Number.isFinite(data.discountPrice) || data.discountPrice < 0)) {
+    data.discountPrice = null;
+    rowWarnings.push('discountPrice invalid, cleared to null');
+  }
+
+  if (
+    typeof data.discountPrice === 'number' &&
+    Number.isFinite(data.discountPrice) &&
+    data.discountPrice > data.price
+  ) {
+    data.discountPrice = Number(Math.max(0, data.price * 0.8).toFixed(2));
+    rowWarnings.push(`discountPrice exceeded price, adjusted to ${data.discountPrice}`);
+  }
+
+  if (!Array.isArray(data.variants)) {
+    data.variants = [];
+  }
+
+  if (!Array.isArray(data.productImages)) {
+    data.productImages = [];
+  }
+
+  return { data, rowWarnings };
+}
+
 function coerceExcelRow(row) {
   const n = normalizeKeys(row);
   const price = n.price !== '' && n.price != null ? Number(n.price) : NaN;
@@ -190,12 +266,14 @@ const bulkProductsFromExcel = async (req, res, next) => {
 
     const created = [];
     const errors = [];
+    const warnings = [];
     const skuBatch = new Set();
 
     for (let i = 0; i < rows.length; i++) {
       const rowNum = i + 2;
       const coerced = coerceExcelRow(rows[i]);
-      const parsed = productBulkRowSchema.safeParse(coerced);
+      const { data: preparedRow, rowWarnings } = applyBulkFallbacks(coerced, rowNum);
+      const parsed = productBulkRowSchema.safeParse(preparedRow);
       if (!parsed.success) {
         errors.push({
           row: rowNum,
@@ -205,6 +283,14 @@ const bulkProductsFromExcel = async (req, res, next) => {
       }
 
       const data = parsed.data;
+
+      if (rowWarnings.length > 0) {
+        warnings.push({
+          row: rowNum,
+          message: rowWarnings.join('; '),
+        });
+      }
+
       if (skuBatch.has(data.skuCode)) {
         errors.push({ row: rowNum, message: `Duplicate SKU in file: ${data.skuCode}` });
         continue;
@@ -239,8 +325,10 @@ const bulkProductsFromExcel = async (req, res, next) => {
         totalRows: rows.length,
         created: created.length,
         failed: errors.length,
+        warned: warnings.length,
       },
       created,
+      warnings,
       errors,
     });
   } catch (err) {

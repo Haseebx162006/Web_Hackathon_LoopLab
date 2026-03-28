@@ -43,9 +43,9 @@ const checkoutCart = async (req, res, next) => {
       ordersBySeller[sellerIdStr].totalAmount += price * item.quantity;
       
       // Basic stock reduction
-      if (product.stock !== undefined && product.stock !== null) {
-          product.stock -= item.quantity;
-          if (product.stock < 0) {
+        if (product.stockQuantity !== undefined && product.stockQuantity !== null) {
+          product.stockQuantity -= item.quantity;
+          if (product.stockQuantity < 0) {
               throw new Error(`Insufficient stock for product ${product.productName}`);
           }
           await product.save({ session });
@@ -60,7 +60,7 @@ const checkoutCart = async (req, res, next) => {
         items: orderData.items,
         totalAmount: orderData.totalAmount,
         status: paymentMethod === 'cod' ? 'pending' : 'pending', // Will update via webhook for non-COD
-        // Add shippingAddress inside Order model if not present, but for now just use existing schema
+        shippingAddress,
       }], { session });
 
       createdOrders.push(newOrder[0]);

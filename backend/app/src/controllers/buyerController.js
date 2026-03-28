@@ -2,19 +2,78 @@ const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
 
+const getPublicStatuses = async () => {
+  const approvedExists = await Product.exists({ status: 'approved' });
+  if (approvedExists) {
+    return ['approved'];
+  }
+
+  return ['approved', 'pending'];
+};
+
+const attachRatings = async (products) => {
+  if (!products || products.length === 0) {
+    return [];
+  }
+
+  const productIds = products
+    .map((product) => product?._id)
+    .filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  if (productIds.length === 0) {
+    return products;
+  }
+
+  const ratingRows = await Review.aggregate([
+    { $match: { product: { $in: productIds } } },
+    {
+      $group: {
+        _id: '$product',
+        avgRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const ratingMap = new Map(
+    ratingRows.map((row) => [
+      String(row._id),
+      {
+        rating: Number((row.avgRating || 0).toFixed(1)),
+        totalReviews: row.totalReviews || 0,
+      },
+    ])
+  );
+
+  return products.map((product) => {
+    const key = String(product._id);
+    const ratingInfo = ratingMap.get(key) || { rating: 0, totalReviews: 0 };
+    return {
+      ...product,
+      rating: ratingInfo.rating,
+      totalReviews: ratingInfo.totalReviews,
+    };
+  });
+};
+
 const getHomeData = async (req, res, next) => {
   try {
-    const featuredProducts = await Product.find({ status: 'approved' })
+    const statuses = await getPublicStatuses();
+
+    const featuredProducts = await Product.find({ status: { $in: statuses } })
       .sort({ createdAt: -1 })
       .limit(10)
-      .select('productName price discountPrice images category rating skuCode');
+      .select('productName price discountPrice productImages category skuCode stockQuantity')
+      .lean();
 
-    const categories = await Product.distinct('category', { status: 'approved' });
+    const featuredWithRatings = await attachRatings(featuredProducts);
+
+    const categories = await Product.distinct('category', { status: { $in: statuses } });
 
     res.status(200).json({
       success: true,
       data: {
-        featuredProducts,
+        featuredProducts: featuredWithRatings,
         categories,
         banners: [] // Placeholder for banners
       }
@@ -28,7 +87,9 @@ const searchProducts = async (req, res, next) => {
   try {
     const { search, category, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
 
-    const query = { status: 'approved' };
+    const statuses = await getPublicStatuses();
+
+    const query = { status: { $in: statuses } };
 
     if (search) {
       query.productName = { $regex: search, $options: 'i' };
@@ -52,14 +113,17 @@ const searchProducts = async (req, res, next) => {
       .sort(sortQuery)
       .skip(skip)
       .limit(Number(limit))
-      .select('productName price discountPrice images category rating skuCode');
+      .select('productName price discountPrice productImages category skuCode stockQuantity')
+      .lean();
+
+    const productsWithRatings = await attachRatings(products);
 
     const total = await Product.countDocuments(query);
 
     res.status(200).json({
       success: true,
       data: {
-        products,
+        products: productsWithRatings,
         pagination: {
           total,
           page: Number(page),
@@ -75,13 +139,15 @@ const searchProducts = async (req, res, next) => {
 const getProductDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const statuses = await getPublicStatuses();
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400);
       return next(new Error('Invalid product id'));
     }
 
     const product = await Product.findById(id).populate('sellerId', 'storeName storeLogo');
-    if (!product || product.status !== 'approved') {
+    if (!product || !statuses.includes(product.status)) {
       res.status(404);
       return next(new Error('Product not found'));
     }

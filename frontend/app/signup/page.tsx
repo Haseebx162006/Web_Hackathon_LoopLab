@@ -2,19 +2,38 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { IoArrowBack, IoMail, IoLockClosed, IoPerson, IoStorefront, IoCall, IoLocation, IoCard, IoChevronForward, IoSparkles } from "react-icons/io5";
+import { motion } from "framer-motion";
+import { IoArrowBack, IoMail, IoLockClosed, IoPerson, IoStorefront, IoCall, IoLocation, IoCard, IoChevronForward } from "react-icons/io5";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useSignupMutation } from "../../store/apiSlice";
-import { div } from "framer-motion/client";
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+   if (
+      typeof error === "object" &&
+      error !== null &&
+      "data" in error &&
+      typeof (error as { data?: unknown }).data === "object"
+   ) {
+      const data = (error as { data?: { message?: unknown } }).data;
+      if (data && typeof data.message === "string") {
+         return data.message;
+      }
+   }
+
+   if (error instanceof Error && error.message) {
+      return error.message;
+   }
+
+   return fallback;
+};
 
 const SignupForm = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
    const [role, setRole] = useState<'buyer' | 'seller' | null>(null);
 
-  const [signup, { isLoading: isSigningUp }] = useSignupMutation();
+   const [signup] = useSignupMutation();
 
   useEffect(() => {
     const r = searchParams.get("role");
@@ -80,11 +99,11 @@ const SignupForm = () => {
         toast.success(`Welcome to the Store, ${role === 'buyer' ? formData.name : formData.storeName}!`);
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
-        router.push(data.role === 'seller' ? "/seller-dashboard" : "/profile");
+            router.push(data.role === 'seller' ? "/seller-dashboard" : "/profile");
       }
-    } catch (err: any) {
+      } catch (error: unknown) {
       // RTK Query throws the rejected response
-      toast.error(err?.data?.message || "Failed to connect to the server");
+         toast.error(getApiErrorMessage(error, "Failed to connect to the server"));
     } finally {
       setIsLoading(false);
     }

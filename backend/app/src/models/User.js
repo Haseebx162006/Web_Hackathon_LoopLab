@@ -34,7 +34,14 @@ const userSchema = new mongoose.Schema(
     phoneNumber: { type: String, trim: true },
     businessAddress: { type: String, trim: true },
     bankDetails: { type: String, trim: true },
-    
+
+    storeLogo: { type: String, trim: true },
+    storeDescription: { type: String, trim: true },
+    contactDetails: {
+      phone: { type: String, trim: true },
+      email: { type: String, trim: true },
+    },
+
     // OAuth and default fields kept for compatibility
     oauthProvider: {
       type: String,

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const XLSX = require('xlsx');
 const Product = require('../models/Product');
 const logger = require('../utils/logger');
+const { uploadImage } = require('../utils/cloudinary');
 const {
   productCreateSchema,
   productUpdateSchema,
@@ -247,10 +248,70 @@ const bulkProductsFromExcel = async (req, res, next) => {
   }
 };
 
+const uploadProductImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      return next(new Error('Invalid product id'));
+    }
+
+    if (!req.files || req.files.length === 0) {
+      res.status(400);
+      return next(new Error('No images provided'));
+    }
+
+    const product = await Product.findOne({ _id: id, sellerId: sellerId(req) });
+    if (!product) {
+      res.status(404);
+      return next(new Error('Product not found or unauthorized'));
+    }
+
+    const uploadPromises = req.files.map((file) => uploadImage(file.buffer));
+    const urls = await Promise.all(uploadPromises);
+
+    product.productImages.push(...urls);
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Images uploaded successfully',
+      data: product,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getProductImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      return next(new Error('Invalid product id'));
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      res.status(404);
+      return next(new Error('Product not found'));
+    }
+
+    res.status(200).json({
+      success: true,
+      data: product.productImages,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createProduct,
   listProducts,
   updateProduct,
   deleteProduct,
   bulkProductsFromExcel,
+  uploadProductImages,
+  getProductImages,
 };

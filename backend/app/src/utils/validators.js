@@ -221,6 +221,15 @@ const adminPaymentsQuerySchema = z.object({
 const adminAnalyticsQuerySchema = z.object({
   period: z.enum(['daily', 'weekly', 'monthly']).optional().default('daily'),
 });
+
+const autocompleteQuerySchema = z.object({
+  q: z.string().min(1, 'Search query is required').max(100, 'Query too long').trim(),
+});
+
+const chatMessageSchema = z.object({
+  message: z.string().min(1, 'Message is required').max(2000, 'Message too long').trim(),
+});
+
 module.exports = {
   baseSignupSchema,
   signupSchema,
@@ -246,4 +255,6 @@ module.exports = {
   adminUpdateOrderRefundSchema,
   adminPaymentsQuerySchema,
   adminAnalyticsQuerySchema,
+  autocompleteQuerySchema,
+  chatMessageSchema,
 };

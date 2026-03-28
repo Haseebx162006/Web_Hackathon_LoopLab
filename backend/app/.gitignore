@@ -104,3 +104,5 @@ coverage/
 *.pem
 *.key
 *.crt
+
+.env.example

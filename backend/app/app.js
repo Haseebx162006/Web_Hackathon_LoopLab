@@ -18,6 +18,7 @@ const wishlistRoutes = require('./src/routes/wishlistRoutes');
 const checkoutRoutes = require('./src/routes/checkoutRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
 
 const errorHandler = require('./src/middleware/errorMiddleware');
 const limiter = require('./src/middleware/rateLimiter');
@@ -51,6 +52,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/buyer', dashboardRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

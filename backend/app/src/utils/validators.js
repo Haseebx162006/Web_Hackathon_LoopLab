@@ -182,6 +182,11 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(['cod', 'card', 'wallet']),
 });
 
+const adminLoginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
 module.exports = {
   baseSignupSchema,
   signupSchema,
@@ -199,4 +204,5 @@ module.exports = {
   sellerProfileUpdateSchema,
   sellerPasswordChangeSchema,
   checkoutSchema,
+  adminLoginSchema,
 };

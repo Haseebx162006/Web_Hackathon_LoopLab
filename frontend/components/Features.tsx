@@ -126,8 +126,28 @@ const Features = () => {
   });
 
   return (
-    <section ref={containerRef} className="relative h-[400vh] bg-brand-offwhite">
-   
+    <section ref={containerRef} className="relative h-[400vh] bg-brand-offwhite pb-[50vh]">
+      {/* Background Decorative Text */}
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 whitespace-nowrap text-[16vw] font-black text-black/[0.2] pointer-events-none select-none uppercase tracking-tighter z-0">
+        FEATURES
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 md:px-12 relative z-10 pt-32 mb-20">
+        <div className="flex flex-col md:flex-row items-end justify-between gap-12">
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+                <motion.div 
+                    initial={{ width: 0 }}
+                    whileInView={{ width: 80 }}
+                    className="h-[2px] bg-brand-purple"
+                />
+            </div>
+            <h2 className="text-6xl md:text-7xl font-black text-gray-900 tracking-tighter leading-[0.85] uppercase italic">
+               Core <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink via-brand-purple to-brand-pink drop-shadow-[0_2px_10px_rgba(212,165,255,0.3)]">Features</span>
+            </h2>
+          </div>
+        </div>
+      </div>
 
         {features.map((feature, index) => (
             <FeatureCard 

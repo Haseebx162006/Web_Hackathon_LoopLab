@@ -140,7 +140,7 @@ const Categories = () => {
                 />
             </div>
             <h2 className="text-6xl md:text-7xl font-black text-gray-900 tracking-tighter leading-[0.85] uppercase italic">
-                <br /> <span className="text bg-clip-text bg-gradient-to-r from-brand-pink via-brand-purple to-brand-pink drop-shadow-[0_2px_10px_rgba(212,165,255,0.3)]"></span>
+               Shop <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink via-brand-purple to-brand-pink drop-shadow-[0_2px_10px_rgba(212,165,255,0.3)]">Categories</span>
             </h2>
           </div>
           

@@ -77,7 +77,6 @@ const Header = () => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              cursor-pointer
             >
               <circle cx="8" cy="21" r="1" />
               <circle cx="19" cy="21" r="1" />

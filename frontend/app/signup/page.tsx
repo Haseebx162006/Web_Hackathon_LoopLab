@@ -12,7 +12,7 @@ import { div } from "framer-motion/client";
 const SignupForm = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
+   const [role, setRole] = useState<'buyer' | 'seller' | null>(null);
 
   const [signup, { isLoading: isSigningUp }] = useSignupMutation();
 
@@ -46,6 +46,12 @@ const SignupForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+      if (!role) {
+         toast.error("Please choose a valid signup role");
+         setIsLoading(false);
+         return;
+      }
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match");

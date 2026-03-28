@@ -51,6 +51,7 @@ const FeatureCard = ({ feature, index, scrollYProgress }: { feature: any, index:
 
   return (
     <div className="sticky top-20 h-[80vh] flex items-center justify-center p-4 md:p-8">
+      
       <motion.div
         style={{ 
           scale, 

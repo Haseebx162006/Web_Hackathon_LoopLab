@@ -1,8 +1,7 @@
-"use client";
-
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IoClose, IoDiamond, IoShieldCheckmark, IoFlash, IoRocket, IoTrendingUp, IoColorPalette } from "react-icons/io5";
+import { IoClose, IoDiamond, IoShieldCheckmark, IoFlash, IoRocket, IoColorPalette, IoTrendingUp } from "react-icons/io5";
+import Link from "next/link";
 
 interface AuthChoiceProps {
   isOpen: boolean;
@@ -101,9 +100,13 @@ const AuthChoice = ({ isOpen, onClose }: AuthChoiceProps) => {
                      </div>
                   </div>
 
-                  <button className="w-full mt-10 py-5 rounded-2xl bg-gray-900 text-white font-bold text-xs uppercase tracking-widest transition-all hover:bg-black active:scale-95 shadow-xl">
+                  <Link 
+                    href="/signup?role=buyer"
+                    onClick={onClose}
+                    className="w-full mt-10 py-5 rounded-2xl bg-gray-900 text-white font-bold text-xs uppercase tracking-widest transition-all hover:bg-black active:scale-95 shadow-xl text-center"
+                  >
                      Become a Buyer
-                  </button>
+                  </Link>
                 </div>
               </motion.div>
 
@@ -139,9 +142,13 @@ const AuthChoice = ({ isOpen, onClose }: AuthChoiceProps) => {
                      </div>
                   </div>
 
-                  <button className="w-full mt-10 py-5 rounded-2xl bg-gradient-to-r from-brand-pink to-brand-purple text-black font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl">
+                  <Link 
+                    href="/signup?role=seller"
+                    onClick={onClose}
+                    className="w-full mt-10 py-5 rounded-2xl bg-gradient-to-r from-brand-pink to-brand-purple text-black font-bold text-xs uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl text-center"
+                  >
                      Become a Seller
-                  </button>
+                  </Link>
                 </div>
               </motion.div>
             </div>

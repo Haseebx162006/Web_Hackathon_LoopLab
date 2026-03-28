@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   description: "Fresh deals every day, delivered to your door.",
 };
 
+import { Toaster } from "react-hot-toast";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        <Toaster position="top-center" />
         {children}
       </body>
     </html>

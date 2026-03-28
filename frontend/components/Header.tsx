@@ -57,8 +57,14 @@ const Header = () => {
              onClick={() => setIsAuthOpen(true)}
              className="hidden cursor-pointer sm:flex px-6 py-2.5 rounded-full bg-black text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-gray-800 active:scale-95 shadow-xl"
           >
-             Login
+             Signup
           </button>
+
+          <Link href="/login">
+            <button className="hidden cursor-pointer sm:flex px-6 py-2.5 rounded-full bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] transition-all hover:bg-black hover:text-white active:scale-95 shadow-xl">
+              Login
+            </button>
+          </Link>
 
           <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/5 transition-all duration-300 hover:bg-black hover:text-white">
             <svg

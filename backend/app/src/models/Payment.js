@@ -39,15 +39,13 @@ const paymentSchema = new mongoose.Schema(
       enum: ['none', 'pending', 'completed'],
       default: 'none',
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
+
   },
   {
     timestamps: true,
   }
 );
+
+paymentSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Payment', paymentSchema);

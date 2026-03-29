@@ -3,12 +3,26 @@ const Order = require('../models/Order');
 
 const getBuyerOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ buyerId: req.user._id })
-      .populate('sellerId', 'storeName')
-      .populate('items.product', 'productName productImages price discountPrice category stockQuantity')
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
 
-    res.status(200).json({ success: true, data: orders });
+    const filter = { buyerId: req.user._id };
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .populate('sellerId', 'storeName')
+        .populate('items.product', 'productName productImages price discountPrice category stockQuantity')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Order.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     next(err);
   }

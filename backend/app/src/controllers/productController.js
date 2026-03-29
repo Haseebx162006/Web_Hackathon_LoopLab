@@ -186,8 +186,21 @@ const createProduct = async (req, res, next) => {
 
 const listProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ sellerId: sellerId(req) }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: products });
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = { sellerId: sellerId(req) };
+    const [products, total] = await Promise.all([
+      Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      Product.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: products,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     next(err);
   }

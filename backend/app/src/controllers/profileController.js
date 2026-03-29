@@ -51,11 +51,15 @@ const persistStoreLogo = async (file, req) => {
       if (uploadedUrl) {
         return uploadedUrl;
       }
-    } catch (_) {
-      // Fall back to local storage when remote upload fails.
+    } catch (err) {
+      // In production, don't fall back to local storage (ephemeral filesystem)
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Image upload failed. Please try again later.');
+      }
     }
   }
 
+  // Local fallback only in development
   return saveStoreLogoLocally(file, req);
 };
 

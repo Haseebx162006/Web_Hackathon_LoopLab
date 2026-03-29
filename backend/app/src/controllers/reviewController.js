@@ -1,11 +1,17 @@
 const mongoose = require('mongoose');
 const Review = require('../models/Review');
 const Order = require('../models/Order');
+const { z } = require('zod');
+
+const reviewSchema = z.object({
+  rating: z.number().int().min(1, 'Rating must be at least 1').max(5, 'Rating must be at most 5'),
+  comment: z.string().max(2000, 'Comment too long').trim().optional(),
+});
 
 const addReview = async (req, res, next) => {
   try {
     const { productId } = req.params;
-    const { rating, comment } = req.body;
+    const { rating, comment } = reviewSchema.parse(req.body);
 
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       res.status(400);

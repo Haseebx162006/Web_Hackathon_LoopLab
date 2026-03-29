@@ -1,6 +1,7 @@
 const { z } = require('zod');
 const Product = require('../models/Product');
 const { adminUpdateProductSchema } = require('../utils/validators');
+const logger = require('../utils/logger');
 
 const getAllProducts = async (req, res, next) => {
   try {
@@ -48,7 +49,7 @@ const approveProduct = async (req, res, next) => {
     product.status = 'approved';
     await product.save();
     
-    console.log(`[AUDIT] Admin ${req.user.email} approved product ${product._id}`);
+    logger.info(`[AUDIT] Admin ${req.user.email} approved product ${product._id}`);
     res.status(200).json({ success: true, data: { id: product._id, status: product.status } });
   } catch (err) {
     next(err);
@@ -64,7 +65,7 @@ const rejectProduct = async (req, res, next) => {
     product.status = 'rejected';
     await product.save();
     
-    console.log(`[AUDIT] Admin ${req.user.email} rejected product ${product._id}`);
+    logger.info(`[AUDIT] Admin ${req.user.email} rejected product ${product._id}`);
     res.status(200).json({ success: true, data: { id: product._id, status: product.status } });
   } catch (err) {
     next(err);
@@ -82,7 +83,7 @@ const flagProduct = async (req, res, next) => {
     product.isFlagged = req.body.isFlagged !== undefined ? req.body.isFlagged : true;
     await product.save();
     
-    console.log(`[AUDIT] Admin ${req.user.email} flagged product ${product._id} (${product.isFlagged})`);
+    logger.info(`[AUDIT] Admin ${req.user.email} flagged product ${product._id} (${product.isFlagged})`);
     res.status(200).json({ success: true, data: { id: product._id, isFlagged: product.isFlagged } });
   } catch (err) {
     next(err);

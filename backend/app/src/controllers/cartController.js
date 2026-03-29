@@ -19,7 +19,7 @@ const getCart = async (req, res, next) => {
       if (!item.product) {
         return;
       }
-      const price = item.product.discountPrice || item.product.price;
+      const price = item.product.discountPrice != null ? item.product.discountPrice : item.product.price;
       subtotal += price * item.quantity;
     });
 

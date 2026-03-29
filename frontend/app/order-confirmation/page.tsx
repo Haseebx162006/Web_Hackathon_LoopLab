@@ -62,6 +62,12 @@ const OrderConfirmationPage = () => {
           >
             Continue shopping
           </Link>
+          <Link
+            href="/buyer-dashboard/messages"
+            className="rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-xs font-black uppercase tracking-[0.2em] text-emerald-700 transition hover:border-emerald-700 hover:bg-emerald-100"
+          >
+            Open chat
+          </Link>
         </div>
       </section>
     </BuyerPageShell>

@@ -16,6 +16,7 @@ const links = [
   { href: '/products', label: 'Products' },
   { href: '/wishlist', label: 'Wishlist' },
   { href: '/cart', label: 'Cart' },
+  { href: '/buyer-dashboard/messages', label: 'Messages' },
   { href: '/buyer-dashboard', label: 'Dashboard' },
 ] as const;
 

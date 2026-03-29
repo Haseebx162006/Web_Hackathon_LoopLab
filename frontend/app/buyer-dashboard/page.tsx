@@ -142,7 +142,18 @@ const BuyerDashboardPage = () => {
 
               {!isLoading && !isError && orders.length > 0 ? (
                 <div className="space-y-4">
-                  {orders.map((order) => (
+                  {orders.map((order) => {
+                    const legacySeller = (order as BuyerOrder & {
+                      seller?: string | { _id?: string };
+                    }).seller;
+
+                    const sellerChatId =
+                      typeof order.sellerId === 'string'
+                        ? order.sellerId
+                        : order.sellerId?._id ||
+                          (typeof legacySeller === 'string' ? legacySeller : legacySeller?._id);
+
+                    return (
                     <article key={order._id} className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
@@ -178,6 +189,17 @@ const BuyerDashboardPage = () => {
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                         <div className="text-sm font-black text-zinc-800">Total: {formatCurrency(order.totalAmount)}</div>
                         <div className="flex items-center gap-2">
+                          <Link
+                            href={
+                              sellerChatId
+                                ? `/buyer-dashboard/messages?receiverId=${sellerChatId}&orderId=${order._id}`
+                                : '/buyer-dashboard/messages'
+                            }
+                            className="rounded-xl border border-zinc-300 px-3 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
+                          >
+                            {sellerChatId ? 'Message seller' : 'Open chats'}
+                          </Link>
+
                           {order.status === 'delivered' ? (
                             <button
                               type="button"
@@ -199,7 +221,8 @@ const BuyerDashboardPage = () => {
                         </div>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : null}
             </div>

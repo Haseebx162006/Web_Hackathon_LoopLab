@@ -218,6 +218,98 @@ const autocompleteQuerySchema = z.object({
   q: z.string().min(1, 'Search query is required').max(100, 'Query too long').trim(),
 });
 
+const objectIdPattern = /^[a-fA-F0-9]{24}$/;
+
+const queryBooleanSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') {
+      return true;
+    }
+
+    if (normalized === 'false') {
+      return false;
+    }
+  }
+
+  return value;
+}, z.boolean().optional());
+
+const chatConversationParamSchema = z.object({
+  conversationId: z.string().min(1, 'conversationId is required').max(200),
+});
+
+const chatConversationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  resolved: queryBooleanSchema,
+});
+
+const chatMessageHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(30),
+});
+
+const chatSendMessageSchema = z
+  .object({
+    receiverId: z
+      .string()
+      .regex(objectIdPattern, 'Invalid receiverId')
+      .optional(),
+    conversationId: z.string().min(1, 'conversationId is required').max(200).optional(),
+    orderId: z
+      .string()
+      .regex(objectIdPattern, 'Invalid orderId')
+      .optional(),
+    productId: z
+      .string()
+      .regex(objectIdPattern, 'Invalid productId')
+      .optional(),
+    message: z.string().max(2000, 'Message too long').optional(),
+    imageUrls: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1, 'Image URL is required')
+          .refine((value) => /^https?:\/\//i.test(value) || /^\/uploads\//i.test(value), {
+            message: 'Invalid image URL',
+          })
+      )
+      .max(5, 'Maximum 5 images are allowed')
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    const hasConversation = Boolean(data.conversationId?.trim());
+    const hasReceiver = Boolean(data.receiverId?.trim());
+    const hasText = Boolean(data.message?.trim());
+    const hasImages = Array.isArray(data.imageUrls) && data.imageUrls.length > 0;
+
+    if (!hasConversation && !hasReceiver) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['receiverId'],
+        message: 'receiverId is required when conversationId is not provided',
+      });
+    }
+
+    if (!hasText && !hasImages) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['message'],
+        message: 'Message text or at least one image is required',
+      });
+    }
+  });
+
 const chatMessageSchema = z.object({
   message: z.string().min(1, 'Message is required').max(2000, 'Message too long').trim(),
 });
@@ -245,5 +337,9 @@ module.exports = {
   adminPaymentsQuerySchema,
   adminAnalyticsQuerySchema,
   autocompleteQuerySchema,
+  chatConversationParamSchema,
+  chatConversationQuerySchema,
+  chatMessageHistoryQuerySchema,
+  chatSendMessageSchema,
   chatMessageSchema,
 };

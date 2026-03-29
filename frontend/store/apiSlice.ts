@@ -61,6 +61,8 @@ export const apiSlice = createApi({
     'AdminOrder',
     'AdminPayment',
     'AdminAnalytics',
+    'ChatConversation',
+    'ChatMessage',
   ],
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',

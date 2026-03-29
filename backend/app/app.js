@@ -21,6 +21,7 @@ const reviewRoutes = require('./src/routes/reviewRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const supportRoutes = require('./src/routes/supportRoutes');
+const chatRoutes = require('./src/routes/chatRoutes');
 
 const errorHandler = require('./src/middleware/errorMiddleware');
 const limiter = require('./src/middleware/rateLimiter');
@@ -58,6 +59,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

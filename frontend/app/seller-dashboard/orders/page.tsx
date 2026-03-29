@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { 
   IoSearchOutline, 
@@ -381,6 +382,15 @@ const OrdersManagementPage = () => {
 
                       <td className="px-6 py-6">
                         <div className="flex items-center gap-3">
+                          {order.buyer?._id ? (
+                            <Link
+                              href={`/seller-dashboard/messages?receiverId=${order.buyer._id}&orderId=${order._id}`}
+                              className="inline-flex h-11 items-center rounded-2xl border border-zinc-200 px-4 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
+                            >
+                              Message buyer
+                            </Link>
+                          ) : null}
+
                           <div className="w-40">
                              <SellerSelect
                                label=""

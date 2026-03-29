@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import {
   IoArchiveOutline,
   IoBagHandleOutline,
+  IoChatbubbleEllipsesOutline,
   IoChevronBackOutline,
   IoChevronForwardOutline,
   IoCloseOutline,
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { href: '/seller-dashboard/products', label: 'Products', icon: IoStorefrontOutline },
   { href: '/seller-dashboard/inventory', label: 'Inventory', icon: IoArchiveOutline },
   { href: '/seller-dashboard/orders', label: 'Orders', icon: IoBagHandleOutline },
+  { href: '/seller-dashboard/messages', label: 'Messages', icon: IoChatbubbleEllipsesOutline },
   { href: '/seller-dashboard/coupons', label: 'Coupons', icon: IoPricetagOutline },
   { href: '/seller-dashboard/analytics', label: 'Analytics', icon: IoStatsChartOutline },
   { href: '/seller-dashboard/settings', label: 'Settings', icon: IoSettingsOutline },
@@ -52,19 +54,18 @@ const SellerShell = ({ children }: SellerShellProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return localStorage.getItem('seller_sidebar_collapsed') === 'true';
+  });
   
   // Fetch seller profile to check completion status
   const { data: profileResponse } = useGetSellerProfileQuery();
   const profile = profileResponse?.data;
   const isProfileComplete = profile?.profileCompleted ?? false;
-
-  useEffect(() => {
-    const savedState = localStorage.getItem('seller_sidebar_collapsed');
-    if (savedState !== null) {
-      setIsSidebarCollapsed(savedState === 'true');
-    }
-  }, []);
 
   const toggleSidebar = () => {
     const newState = !isSidebarCollapsed;

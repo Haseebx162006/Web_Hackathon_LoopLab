@@ -74,12 +74,13 @@ const FeatureCard = ({
         style={{ 
           scale, 
           y: index === 0 ? 0 : y,
+          willChange: "transform",
         }}
         className={`relative h-full w-full max-w-5xl rounded-[4rem] bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden flex flex-col md:flex-row items-center p-8 md:p-16 gap-12 transition-colors z-10 ${feature.color.replace('/20', '/40')}`}
       >
-        {/* Deep Internal Glow */}
-        <div className={`absolute -right-20 -top-20 h-[500px] w-[500px] rounded-full blur-[100px] opacity-30 ${feature.blobColor}`} />
-        <div className={`absolute -left-20 -bottom-20 h-[400px] w-[400px] rounded-full blur-[120px] opacity-20 ${feature.blobColor}`} />
+        {/* Deep Internal Glow - Optimized Blurs */}
+        <div className={`absolute -right-20 -top-20 h-[500px] w-[500px] rounded-full blur-[60px] opacity-20 ${feature.blobColor}`} />
+        <div className={`absolute -left-20 -bottom-20 h-[400px] w-[400px] rounded-full blur-[70px] opacity-15 ${feature.blobColor}`} />
         
         {/* Left Side: Text Content */}
         <div className="flex-1 space-y-8 z-10 text-center md:text-left">
@@ -107,16 +108,17 @@ const FeatureCard = ({
         {/* Right Side: 3D Visualization */}
         <div className="flex-1 relative z-10 w-full max-w-[450px]">
           <motion.div
-            animate={{ 
+            whileInView={{ 
               y: [0, -25, 0],
               rotate: [0, 4, 0],
               scale: [1, 1.05, 1]
             }}
+            viewport={{ once: false }}
             transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
             className="w-full h-full relative group"
           >
-            {/* Soft Ambient Shadow under Image */}
-            <div className="absolute bottom-[-20px] left-1/2 -translate-x-1/2 w-48 h-8 bg-black/5 blur-2xl rounded-full" />
+            {/* Soft Ambient Shadow under Image - Optimized */}
+            <div className="absolute bottom-[-10px] left-1/2 -translate-x-1/2 w-40 h-6 bg-black/5 blur-xl rounded-full" />
             
             <img 
               src={feature.image} 

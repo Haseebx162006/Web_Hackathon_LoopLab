@@ -44,7 +44,7 @@ const CinematicPreloader: React.FC<CinematicPreloaderProps> = ({ onComplete }) =
           scale: { duration: 2, ease: [0.8, 0, 0.2, 1] }, // Powerful expansion
           borderRadius: { duration: 1.5 }
         }}
-        className="absolute w-24 h-24 bg-gradient-to-br from-pink-300 via-white to-purple-400 shadow-[0_0_50px_rgba(255,255,255,0.5)] flex items-center justify-center"
+        className="absolute w-24 h-24 bg-linear-to-br from-pink-300 via-white to-purple-400 shadow-[0_0_50px_rgba(255,255,255,0.5)] flex items-center justify-center"
       >
         {/* Inner white glow focus */}
         {stage === "drop" && (

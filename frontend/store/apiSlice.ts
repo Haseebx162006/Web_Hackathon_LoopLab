@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { getApiBaseUrl } from '@/utils/apiConfig';
 
 export type UserRole = 'buyer' | 'seller' | 'admin';
 
@@ -67,7 +68,7 @@ export const apiSlice = createApi({
     'BuyerProfile',
   ],
   baseQuery: fetchBaseQuery({
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+    baseUrl: getApiBaseUrl(),
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as { auth?: { token?: string | null } };
       const tokenFromState = state.auth?.token;

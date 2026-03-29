@@ -25,6 +25,7 @@ const chatRoutes = require('./src/routes/chatRoutes');
 
 const errorHandler = require('./src/middleware/errorMiddleware');
 const { limiter } = require('./src/middleware/rateLimiter');
+const { getExpressCorsOptions } = require('./src/config/cors');
 
 const app = express();
 
@@ -33,12 +34,7 @@ app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(express.json());
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? false : true),
-    credentials: true,
-  })
-);
+app.use(cors(getExpressCorsOptions()));
 
 app.use(passport.initialize());
 

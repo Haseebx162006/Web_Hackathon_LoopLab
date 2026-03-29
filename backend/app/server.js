@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const app = require('./app');
 const connectDB = require('./src/config/db');
+const { getSocketCorsOptions } = require('./src/config/cors');
 const { initializeChatSocket } = require('./src/sockets/chatSocket');
 const logger = require('./src/utils/logger');
 
@@ -11,13 +12,7 @@ const PORT = process.env.PORT || 5000;
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
-    cors: {
-        origin:
-            process.env.CORS_ORIGIN ||
-            process.env.FRONTEND_URL ||
-            (process.env.NODE_ENV === 'production' ? false : true),
-        credentials: true,
-    },
+    cors: getSocketCorsOptions(),
 });
 
 initializeChatSocket(io);

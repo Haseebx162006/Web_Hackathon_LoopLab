@@ -1,15 +1,5 @@
 import type { BuyerProduct } from '@/store/buyerApi';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-
-const getApiOrigin = () => {
-  try {
-    const url = new URL(API_BASE);
-    return `${url.protocol}//${url.host}`;
-  } catch {
-    return 'http://localhost:5000';
-  }
-};
+import { getApiOrigin } from '@/utils/apiConfig';
 
 export const formatCurrency = (value: number) => {
   if (!Number.isFinite(value)) {

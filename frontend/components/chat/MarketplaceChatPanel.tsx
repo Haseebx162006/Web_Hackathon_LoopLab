@@ -26,8 +26,7 @@ import {
   useSendChatMessageMutation,
   useUploadChatImagesMutation,
 } from '@/store/chatApi';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { getApiOrigin } from '@/utils/apiConfig';
 const MAX_ATTACHMENTS = 5;
 
 type MarketplaceRole = 'buyer' | 'seller';
@@ -57,14 +56,6 @@ const normalizeApiError = (error: unknown, fallbackMessage: string) => {
   }
 
   return fallbackMessage;
-};
-
-const getApiOrigin = () => {
-  try {
-    return new URL(API_BASE_URL).origin;
-  } catch {
-    return 'http://localhost:5000';
-  }
 };
 
 const resolveAssetUrl = (value?: string | null) => {

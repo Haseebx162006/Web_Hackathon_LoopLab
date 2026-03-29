@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import AuthChoice from "./AuthChoice";
 import { useSelector } from "react-redux";
@@ -23,6 +23,13 @@ const Header = () => {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [storedToken, setStoredToken] = useState<string | null>(null);
   const [storedRole, setStoredRole] = useState<"buyer" | "seller" | "admin" | null>(null);
+
+  const hydrationSubscribe = () => () => {};
+  const isHydrated = useSyncExternalStore(
+    hydrationSubscribe,
+    () => true,
+    () => false,
+  );
 
   const { isAuthenticated, token, role } = useSelector((state: RootState) => state.auth);
   
@@ -57,8 +64,8 @@ const Header = () => {
     return () => window.removeEventListener("storage", syncAuthFromStorage);
   }, []);
 
-  const isLoggedIn = isAuthenticated || Boolean(token) || Boolean(storedToken);
-  const profileRoute = getProfileRoute(role || storedRole);
+  const isLoggedIn = isHydrated && (isAuthenticated || Boolean(token) || Boolean(storedToken));
+  const profileRoute = getProfileRoute((role || storedRole || null) as "buyer" | "seller" | "admin" | null);
 
   useEffect(() => {
     const handleScroll = () => {

@@ -52,6 +52,7 @@ export const apiSlice = createApi({
     'SellerAnalytics',
     'SellerProfile',
     'BuyerProduct',
+    'BuyerSellerSummary',
     'BuyerCart',
     'BuyerWishlist',
     'BuyerOrder',

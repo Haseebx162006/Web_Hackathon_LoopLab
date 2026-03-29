@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 import { motion } from "framer-motion";
 
@@ -107,6 +108,8 @@ const products: Product[] = [
 ];
 
 const ProductCard = ({ product, index }: { product: Product; index: number }) => {
+  const productHref = `/products?category=${encodeURIComponent(product.category)}#products-catalog`;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -120,8 +123,10 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
           <span className={`text-[10px] font-black uppercase tracking-[0.4em] ${product.accent}`}>
             {product.category}
           </span>
-          <h3 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">
-            {product.name}
+          <h3 className="text-2xl font-black tracking-tighter uppercase italic text-gray-900 transition-colors hover:text-gray-700">
+            <Link href={productHref}>
+              {product.name}
+            </Link>
           </h3>
         </div>
         <div className="text-xl font-black text-gray-900/60 tracking-tighter">
@@ -129,14 +134,18 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
         </div>
       </div>
 
-      <div className="flex-1 w-full relative flex items-center justify-center pointer-events-none">
+      <Link
+        href={productHref}
+        aria-label={`Open ${product.name} category products`}
+        className="flex-1 w-full relative flex items-center justify-center"
+      >
         <motion.div
-           animate={{ 
-             y: [0, -10, 0],
-             rotate: [0, 2, 0]
-           }}
-           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-           className="w-full h-full flex items-center justify-center"
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, 2, 0]
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="w-full h-full flex items-center justify-center"
         >
           <img
             src={product.image}
@@ -144,24 +153,34 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             className="w-[85%] h-auto object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform duration-700"
           />
         </motion.div>
-      </div>
+      </Link>
 
       {/* Hover Action Area */}
       <div className="absolute inset-x-0 bottom-0 p-6 flex gap-3 z-20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-white/90 to-transparent pt-12">
-         <motion.button
+        <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-1 py-4 rounded-xl bg-white/80 backdrop-blur-md text-gray-900 font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg border border-white/50 transition-all hover:bg-white"
+          className="flex-1"
          >
+          <Link
+            href={productHref}
+            className="flex w-full items-center justify-center py-4 rounded-xl bg-white/80 backdrop-blur-md text-gray-900 font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg border border-white/50 transition-all hover:bg-white"
+          >
             Details
-         </motion.button>
-         <motion.button
+          </Link>
+        </motion.div>
+        <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className={`flex-[1.5] py-4 rounded-xl ${product.btnColor} text-white font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all hover:brightness-110 flex items-center justify-center gap-2 `}
+          className="flex-[1.5]"
          >
-            Add to Bag <span>+</span>
-         </motion.button>
+          <Link
+            href={productHref}
+            className={`flex w-full items-center justify-center gap-2 py-4 rounded-xl ${product.btnColor} text-white font-bold text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all hover:brightness-110`}
+          >
+            Shop This <span>+</span>
+          </Link>
+        </motion.div>
       </div>
 
       <div className={`absolute -right-20 -bottom-20 w-64 h-64 blur-[120px] rounded-full opacity-20 ${product.color.replace('/10', '/30')}`} />

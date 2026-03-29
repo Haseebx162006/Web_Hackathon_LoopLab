@@ -362,7 +362,7 @@ const ProductListingPageContent = () => {
             </div>
           </aside>
 
-          <div className="space-y-6">
+          <div id="products-catalog" className="space-y-6">
             {isLoading ? <BuyerLoader label="Loading products..." /> : null}
 
             {isError ? (

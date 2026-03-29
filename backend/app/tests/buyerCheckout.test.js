@@ -22,8 +22,7 @@ describe('Buyer Checkout Flow', () => {
         storeName: 'Test Store',
         ownerName: 'Owner',
         phoneNumber: '+11111111111',
-        businessAddress: 'Address',
-        bankDetails: 'Bank'
+        businessAddress: 'Address'
       });
     const sellerToken = sellerRes.body.token;
 

@@ -21,7 +21,9 @@ import {
   IoSettingsOutline,
   IoStatsChartOutline,
   IoStorefrontOutline,
+  IoLockClosedOutline,
 } from 'react-icons/io5';
+import { useGetSellerProfileQuery } from '@/store/sellerApi';
 
 interface SellerShellProps {
   children: React.ReactNode;
@@ -51,6 +53,11 @@ const SellerShell = ({ children }: SellerShellProps) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // Fetch seller profile to check completion status
+  const { data: profileResponse } = useGetSellerProfileQuery();
+  const profile = profileResponse?.data;
+  const isProfileComplete = profile?.profileCompleted ?? false;
 
   useEffect(() => {
     const savedState = localStorage.getItem('seller_sidebar_collapsed');
@@ -103,24 +110,44 @@ const SellerShell = ({ children }: SellerShellProps) => {
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = isActiveItem(pathname, item.href);
+              const isLocked = !isProfileComplete && item.href !== '/seller-dashboard/settings';
+
+              const handleClick = (e: React.MouseEvent) => {
+                if (isLocked) {
+                  e.preventDefault();
+                  toast.error('Please complete your profile in Settings to unlock all features');
+                }
+              };
 
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={isLocked ? '#' : item.href}
+                  onClick={handleClick}
                   className={`group relative flex items-center gap-4 rounded-2xl px-4 py-3.5 transition-all duration-300 ${
                     active
                       ? 'bg-black text-white shadow-xl shadow-black/10'
+                      : isLocked
+                      ? 'text-zinc-300 cursor-not-allowed opacity-50'
                       : 'text-zinc-500 hover:bg-zinc-100/50 hover:text-black'
                   }`}
                 >
-                  <Icon className={`text-xl transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                  {isLocked ? (
+                    <IoLockClosedOutline className="text-xl" />
+                  ) : (
+                    <Icon className={`text-xl transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} />
+                  )}
                   {!isSidebarCollapsed && (
                     <span className="text-[13px] font-light tracking-wide animate-fade-in-up">{item.label}</span>
                   )}
-                  {isSidebarCollapsed && (
+                  {isSidebarCollapsed && !isLocked && (
                     <div className="absolute left-full ml-4 hidden rounded-lg bg-black px-3 py-2 text-xs font-light text-white group-hover:block">
                       {item.label}
+                    </div>
+                  )}
+                  {isSidebarCollapsed && isLocked && (
+                    <div className="absolute left-full ml-4 hidden rounded-lg bg-rose-500 px-3 py-2 text-xs font-light text-white group-hover:block">
+                      Complete Profile First
                     </div>
                   )}
                 </Link>
@@ -223,19 +250,31 @@ const SellerShell = ({ children }: SellerShellProps) => {
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActiveItem(pathname, item.href);
+                const isLocked = !isProfileComplete && item.href !== '/seller-dashboard/settings';
+
+                const handleClick = (e: React.MouseEvent) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                    toast.error('Please complete your profile in Settings to unlock all features');
+                  } else {
+                    setMobileOpen(false);
+                  }
+                };
 
                 return (
                   <Link
                     key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
+                    href={isLocked ? '#' : item.href}
+                    onClick={handleClick}
                     className={`flex items-center gap-4 rounded-2xl px-4 py-4 transition-all duration-300 ${
                       active
                         ? 'bg-black text-white shadow-xl shadow-black/10'
+                        : isLocked
+                        ? 'text-zinc-300 cursor-not-allowed opacity-50'
                         : 'text-zinc-500 hover:bg-zinc-100/50 hover:text-black'
                     }`}
                   >
-                    <Icon className="text-xl" />
+                    {isLocked ? <IoLockClosedOutline className="text-xl" /> : <Icon className="text-xl" />}
                     <span className="text-sm font-light tracking-wide">{item.label}</span>
                   </Link>
                 );

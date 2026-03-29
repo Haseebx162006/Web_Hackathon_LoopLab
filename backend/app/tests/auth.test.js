@@ -29,8 +29,7 @@ describe('Authentication & Roles', () => {
         storeName: 'Test Store',
         ownerName: 'Test Owner',
         phoneNumber: '+1234567890',
-        businessAddress: '123 Test St',
-        bankDetails: 'Bank'
+        businessAddress: '123 Test St'
       });
     expect(res.statusCode).toEqual(201);
     expect(res.body).toHaveProperty('token');

@@ -149,6 +149,10 @@ export interface SellerProfile {
   phoneNumber?: string;
   businessAddress?: string;
   bankDetails?: string;
+  bankAccountHolderName?: string;
+  bankName?: string;
+  bankIBAN?: string;
+  profileCompleted?: boolean;
   storeLogo?: string;
   storeDescription?: string;
   contactDetails?: {
@@ -218,6 +222,9 @@ export interface SellerProfileUpdatePayload {
   ownerName?: string;
   storeDescription?: string;
   bankDetails?: string;
+  bankAccountHolderName?: string;
+  bankName?: string;
+  bankIBAN?: string;
   businessAddress?: string;
   contactDetails?: {
     phone?: string;
@@ -285,6 +292,15 @@ const buildProfileFormData = (payload: SellerProfileUpdatePayload) => {
   }
   if (payload.bankDetails !== undefined) {
     formData.append('bankDetails', payload.bankDetails);
+  }
+  if (payload.bankAccountHolderName !== undefined) {
+    formData.append('bankAccountHolderName', payload.bankAccountHolderName);
+  }
+  if (payload.bankName !== undefined) {
+    formData.append('bankName', payload.bankName);
+  }
+  if (payload.bankIBAN !== undefined) {
+    formData.append('bankIBAN', payload.bankIBAN);
   }
   if (payload.businessAddress !== undefined) {
     formData.append('businessAddress', payload.businessAddress);

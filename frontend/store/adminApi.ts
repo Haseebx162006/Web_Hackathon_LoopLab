@@ -11,6 +11,10 @@ export interface AdminUserSummary {
   phoneNumber?: string;
   businessAddress?: string;
   bankDetails?: string;
+  bankAccountHolderName?: string;
+  bankName?: string;
+  bankIBAN?: string;
+  profileCompleted?: boolean;
   lastLogin?: string | null;
   createdAt?: string;
   updatedAt?: string;

@@ -94,6 +94,9 @@ const updateProfile = async (req, res, next) => {
       storeDescription: req.body.storeDescription,
       contactDetails: parseContactDetails(req.body.contactDetails),
       bankDetails: req.body.bankDetails,
+      bankAccountHolderName: req.body.bankAccountHolderName,
+      bankName: req.body.bankName,
+      bankIBAN: req.body.bankIBAN,
       businessAddress: req.body.businessAddress,
     };
 
@@ -125,6 +128,18 @@ const updateProfile = async (req, res, next) => {
       user.bankDetails = parsed.bankDetails;
     }
 
+    if (parsed.bankAccountHolderName !== undefined) {
+      user.bankAccountHolderName = parsed.bankAccountHolderName;
+    }
+
+    if (parsed.bankName !== undefined) {
+      user.bankName = parsed.bankName;
+    }
+
+    if (parsed.bankIBAN !== undefined) {
+      user.bankIBAN = parsed.bankIBAN;
+    }
+
     if (parsed.businessAddress !== undefined) {
       user.businessAddress = parsed.businessAddress;
     }
@@ -143,6 +158,20 @@ const updateProfile = async (req, res, next) => {
 
     if (req.file) {
       user.storeLogo = await persistStoreLogo(req.file, req);
+    }
+
+    // Check if profile is complete
+    if (user.role === 'seller') {
+      const isComplete = Boolean(
+        user.storeName &&
+        user.ownerName &&
+        user.phoneNumber &&
+        user.businessAddress &&
+        user.bankAccountHolderName &&
+        user.bankName &&
+        user.bankIBAN
+      );
+      user.profileCompleted = isComplete;
     }
 
     await user.save();

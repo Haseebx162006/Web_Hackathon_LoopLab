@@ -16,8 +16,7 @@ describe('Seller Dashboard & Products', () => {
         storeName: 'Top Store',
         ownerName: 'Top Owner',
         phoneNumber: '+1999999999',
-        businessAddress: '123 Main St',
-        bankDetails: 'Bank'
+        businessAddress: '123 Main St'
       });
     sellerToken = res.body.token;
   });

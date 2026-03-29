@@ -8,12 +8,13 @@ import {
   IoCallOutline, 
   IoMailOutline,
   IoLocationOutline,
-  IoBanOutline,
   IoShieldCheckmarkOutline,
   IoImageOutline,
   IoLockClosedOutline,
-  IoCheckmarkCircleOutline
+  IoCheckmarkCircleOutline,
+  IoCard
 } from 'react-icons/io5';
+import { BsBank } from "react-icons/bs";
 import SellerButton from '@/components/seller/SellerButton';
 import SellerCard from '@/components/seller/SellerCard';
 import SellerErrorState from '@/components/seller/SellerErrorState';
@@ -33,7 +34,9 @@ interface ProfileFormState {
   ownerName: string;
   storeDescription: string;
   businessAddress: string;
-  bankDetails: string;
+  bankAccountHolderName: string;
+  bankName: string;
+  bankIBAN: string;
   contactPhone: string;
   contactEmail: string;
 }
@@ -75,7 +78,9 @@ const SettingsPage = () => {
     ownerName: profileForm.ownerName ?? profile?.ownerName ?? '',
     storeDescription: profileForm.storeDescription ?? profile?.storeDescription ?? '',
     businessAddress: profileForm.businessAddress ?? profile?.businessAddress ?? '',
-    bankDetails: profileForm.bankDetails ?? profile?.bankDetails ?? '',
+    bankAccountHolderName: profileForm.bankAccountHolderName ?? profile?.bankAccountHolderName ?? '',
+    bankName: profileForm.bankName ?? profile?.bankName ?? '',
+    bankIBAN: profileForm.bankIBAN ?? profile?.bankIBAN ?? '',
     contactPhone: profileForm.contactPhone ?? profile?.contactDetails?.phone ?? profile?.phoneNumber ?? '',
     contactEmail: profileForm.contactEmail ?? profile?.contactDetails?.email ?? '',
   };
@@ -105,7 +110,9 @@ const SettingsPage = () => {
         ownerName: profileValues.ownerName,
         storeDescription: profileValues.storeDescription,
         businessAddress: profileValues.businessAddress,
-        bankDetails: profileValues.bankDetails,
+        bankAccountHolderName: profileValues.bankAccountHolderName,
+        bankName: profileValues.bankName,
+        bankIBAN: profileValues.bankIBAN,
         contactDetails: {
           phone: profileValues.contactPhone,
           email: profileValues.contactEmail,
@@ -174,6 +181,28 @@ const SettingsPage = () => {
 
       {profile ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          {/* Profile Completion Banner */}
+          {!profile.profileCompleted && (
+            <div className="xl:col-span-3">
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-100 to-orange-50 rounded-[2.5rem] blur opacity-20"></div>
+                <div className="relative bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-[2.5rem] p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="h-12 w-12 bg-amber-100 rounded-2xl flex items-center justify-center border border-amber-200 shrink-0">
+                      <IoLockClosedOutline className="text-amber-600 text-2xl" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-light tracking-tight text-amber-900 mb-1">Complete Your Profile to Unlock Dashboard</h3>
+                      <p className="text-sm text-amber-700 leading-relaxed">
+                        Please fill in all required fields including bank account details below. Once your profile is complete, all dashboard sections will be unlocked and you can start managing your store.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Main Profile Form */}
           <div className="xl:col-span-2 space-y-6">
             <div className="relative group">
@@ -264,19 +293,65 @@ const SettingsPage = () => {
                         }
                       />
                     </div>
-                    <div className="relative">
-                      <IoBanOutline className="absolute left-4 top-[42px] text-zinc-400 text-lg pointer-events-none z-10" />
-                      <SellerInput
-                        label="Bank Details"
-                        className="!pl-12"
-                        value={profileValues.bankDetails}
-                        onChange={(event) =>
-                          setProfileForm((prev) => ({
-                            ...prev,
-                            bankDetails: event.target.value,
-                          }))
-                        }
-                      />
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-8 w-8 bg-emerald-50 rounded-xl flex items-center justify-center border border-emerald-100">
+                      <BsBank className="text-emerald-500 text-base" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-light tracking-tight text-gray-900">Bank Account Details</h3>
+                        <p className="text-xs text-zinc-400">Required to receive payments from sales</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 bg-zinc-50/50 p-6 rounded-3xl border border-zinc-100">
+                      <div className="relative md:col-span-2">
+                        <IoPersonOutline className="absolute left-4 top-[42px] text-zinc-400 text-lg pointer-events-none z-10" />
+                        <SellerInput
+                          label="Account Holder Name"
+                          className="!pl-12 bg-white"
+                          placeholder="Full name as per bank account"
+                          value={profileValues.bankAccountHolderName}
+                          onChange={(event) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              bankAccountHolderName: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="relative">
+                        <BsBank className="absolute left-4 top-[42px] text-zinc-400 text-lg pointer-events-none z-10" />
+                        <SellerInput
+                          label="Bank Name"
+                          className="!pl-12 bg-white"
+                          placeholder="e.g., Chase Bank"
+                          value={profileValues.bankName}
+                          onChange={(event) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              bankName: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="relative">
+                        <IoCard className="absolute left-4 top-[42px] text-zinc-400 text-lg pointer-events-none z-10" />
+                        <SellerInput
+                          label="IBAN Number"
+                          className="!pl-12 bg-white"
+                          placeholder="e.g., GB29 NWBK 6016 1331 9268 19"
+                          value={profileValues.bankIBAN}
+                          onChange={(event) =>
+                            setProfileForm((prev) => ({
+                              ...prev,
+                              bankIBAN: event.target.value,
+                            }))
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
 

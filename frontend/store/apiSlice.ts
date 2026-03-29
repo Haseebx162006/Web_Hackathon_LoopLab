@@ -29,7 +29,6 @@ export interface SignupRequest {
   ownerName?: string;
   phoneNumber?: string;
   businessAddress?: string;
-  bankDetails?: string;
 }
 
 export interface LoginRequest {

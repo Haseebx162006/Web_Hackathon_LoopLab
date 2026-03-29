@@ -38,7 +38,15 @@ const userSchema = new mongoose.Schema(
     ownerName: { type: String, trim: true },
     phoneNumber: { type: String, trim: true },
     businessAddress: { type: String, trim: true },
-    bankDetails: { type: String, trim: true },
+    bankDetails: { type: String, trim: true }, // Legacy field, kept for compatibility
+    
+    // New bank details fields
+    bankAccountHolderName: { type: String, trim: true },
+    bankName: { type: String, trim: true },
+    bankIBAN: { type: String, trim: true },
+    
+    // Profile completion flag
+    profileCompleted: { type: Boolean, default: false },
 
     storeLogo: { type: String, trim: true },
     storeDescription: { type: String, trim: true },

@@ -53,7 +53,6 @@ const SignupForm = () => {
     ownerName: "", // Seller only
     phoneNumber: "", // Seller only
     businessAddress: "", // Seller only
-    bankDetails: "", // Seller only
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +88,6 @@ const SignupForm = () => {
           ownerName: formData.ownerName,
           phoneNumber: formData.phoneNumber,
           businessAddress: formData.businessAddress,
-          bankDetails: formData.bankDetails,
         })
       };
 
@@ -278,18 +276,6 @@ const SignupForm = () => {
                                     required
                                     placeholder="Business Address"
                                     value={formData.businessAddress}
-                                    onChange={handleChange}
-                                    className="w-full bg-white border border-gray-100/50 py-6 pl-16 pr-8 rounded-[2rem] text-sm font-bold shadow-[0_4px_30px_-10px_rgba(0,0,0,0.03)] focus:border-brand-purple/40 transition-all outline-none"
-                                 />
-                              </div>
-                              <div className="relative group">
-                                 <IoCard className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-brand-purple transition-colors text-xl" />
-                                 <input 
-                                    type="text" 
-                                    name="bankDetails"
-                                    required
-                                    placeholder="Bank Details (IBAN / Account Number)"
-                                    value={formData.bankDetails}
                                     onChange={handleChange}
                                     className="w-full bg-white border border-gray-100/50 py-6 pl-16 pr-8 rounded-[2rem] text-sm font-bold shadow-[0_4px_30px_-10px_rgba(0,0,0,0.03)] focus:border-brand-purple/40 transition-all outline-none"
                                  />

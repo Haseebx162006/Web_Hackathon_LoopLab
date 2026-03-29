@@ -37,7 +37,6 @@ const signup = async (req, res, next) => {
       userData.ownerName = validatedData.ownerName;
       userData.phoneNumber = validatedData.phoneNumber;
       userData.businessAddress = validatedData.businessAddress;
-      userData.bankDetails = validatedData.bankDetails;
     }
 
     const user = await User.create(userData);

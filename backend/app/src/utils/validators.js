@@ -23,7 +23,6 @@ const signupSchema = z.discriminatedUnion('role', [
     ownerName: z.string().min(2, 'Owner name is required'),
     phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
     businessAddress: z.string().min(5, 'Business address is required'),
-    bankDetails: z.string().min(5, 'Bank details are required'),
   }),
 ]).superRefine((val, ctx) => {
   if (val.password !== val.confirmPassword) {
@@ -148,6 +147,9 @@ const sellerProfileUpdateSchema = z.object({
   ownerName: z.string().max(120).optional(),
   storeDescription: z.string().max(10000).optional(),
   bankDetails: z.string().max(500).optional(),
+  bankAccountHolderName: z.string().max(200).optional(),
+  bankName: z.string().max(200).optional(),
+  bankIBAN: z.string().max(100).optional(),
   businessAddress: z.string().max(500).optional(),
   contactDetails: z
     .object({

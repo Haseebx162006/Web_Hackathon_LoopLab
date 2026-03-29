@@ -74,7 +74,6 @@ const FeatureCard = ({
         style={{ 
           scale, 
           y: index === 0 ? 0 : y,
-          willChange: "transform",
         }}
         className={`relative h-full w-full max-w-5xl rounded-[4rem] bg-white shadow-[0_40px_100px_-20px_rgba(0,0,0,0.1)] border border-gray-100 overflow-hidden flex flex-col md:flex-row items-center p-8 md:p-16 gap-12 transition-colors z-10 ${feature.color.replace('/20', '/40')}`}
       >

@@ -423,17 +423,32 @@ const CheckoutPage = () => {
                       <button onClick={() => setStep(1)} className="text-[7px] font-black uppercase tracking-widest text-zinc-900 hover:opacity-50 transition-opacity">Edit</button>
                    </div>
                    <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                      {cartResponse?.data?.cart?.items.map((item, i) => (
+                      {cartResponse?.data?.cart?.items.map((item, i) => {
+                        const itemProduct =
+                          typeof item.product === 'object' && item.product !== null ? item.product : null;
+
+                        return (
                           <div key={i} className="flex items-center gap-4 group">
                             <div className="h-10 w-10 shrink-0 rounded-xl bg-white overflow-hidden border border-zinc-100 transition-transform group-hover:scale-105">
-                                <img src={item.product?.productImages?.[0]} className="h-full w-full object-cover" />
+                              {itemProduct?.productImages?.[0] ? (
+                                <img
+                                  src={itemProduct.productImages[0]}
+                                  className="h-full w-full object-cover"
+                                  alt={itemProduct.productName || 'Product'}
+                                />
+                              ) : null}
                             </div>
                             <div className="min-w-0 flex-1">
-                                <p className="text-[9px] font-black text-zinc-900 truncate uppercase tracking-wider">{item.product?.productName}</p>
-                                <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">Verified Unit • Qty: {item.quantity}</p>
+                              <p className="text-[9px] font-black text-zinc-900 truncate uppercase tracking-wider">
+                                {itemProduct?.productName || 'Product'}
+                              </p>
+                              <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                Verified Unit • Qty: {item.quantity}
+                              </p>
                             </div>
                           </div>
-                      ))}
+                        );
+                      })}
                    </div>
                 </div>
                 

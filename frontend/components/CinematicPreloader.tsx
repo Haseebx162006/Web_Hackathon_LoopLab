@@ -86,10 +86,7 @@ const CinematicPreloader: React.FC<CinematicPreloaderProps> = ({ onComplete }) =
         <motion.div 
            initial={{ opacity: 0 }}
            animate={{ opacity: 0.2 }}
-           className="absolute inset-0 z-10 pointer-events-none mix-blend-soft-light"
-           style={{
-             background: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8), transparent 70%)"
-           }}
+           className="absolute inset-0 z-10 pointer-events-none mix-blend-soft-light bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.8),transparent_70%)]"
         />
       )}
     </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState , useEffect} from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -12,6 +13,7 @@ import {
   useGetBuyerProfileQuery,
   useUpdateBuyerProfileMutation,
   useAddBuyerAddressMutation,
+  useUploadPaymentProofMutation,
   type BuyerAddress
 } from '@/store/buyerApi';
 import BuyerAuthGate from '@/components/buyer/BuyerAuthGate';
@@ -30,7 +32,10 @@ import {
   IoAddOutline,
   IoMapOutline,
   IoCheckmarkCircleOutline,
-  IoCloseOutline
+  IoCloseOutline,
+  IoCloudUploadOutline,
+  IoDiamondOutline,
+  IoWalletOutline
 } from 'react-icons/io5';
 
 // Dynamic import for Map to avoid SSR issues
@@ -68,8 +73,13 @@ const CheckoutPage = () => {
   const user = profileResponse?.data;
 
   // Checkout Stages
+  const [isMounted, setIsMounted] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Multi-step State
   const [name, setName] = useState('');
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -78,7 +88,11 @@ const CheckoutPage = () => {
     label: 'Home',
     country: 'Pakistan',
   });
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'wallet'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'wallet' | 'boutique_account' | 'stripe'>('card');
+  const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
+  const [paymentProofFiles, setPaymentProofFiles] = useState<Record<string, File>>({});
+
+  const [uploadProof, { isLoading: uploadingProof }] = useUploadPaymentProofMutation();
 
   // Sync profile data once loaded
   useEffect(() => {
@@ -143,14 +157,7 @@ const CheckoutPage = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (validItemCount === 0) {
-      toast.error('Manifest is empty.');
-      return;
-    }
-
+  const executeCheckout = async (proofUrls?: Record<string, string>) => {
     const finalAddress = user?.addresses.find(a => a._id === selectedAddressId);
     if (!finalAddress) {
       toast.error('Invalid shipping selection.');
@@ -167,6 +174,7 @@ const CheckoutPage = () => {
           zipCode: finalAddress.zipCode,
         },
         paymentMethod,
+        paymentProof: proofUrls || null,
       }).unwrap();
 
       const orderIds = response.data.orders || [];
@@ -174,12 +182,57 @@ const CheckoutPage = () => {
 
       if (paymentMethod === 'cod') {
         router.push(`/order-confirmation?orders=${encodeURIComponent(orderIds.join(','))}&payment=cod`);
+      } else if (paymentMethod === 'boutique_account') {
+        router.push(`/order-confirmation?orders=${encodeURIComponent(orderIds.join(','))}&payment=boutique_account&status=pending_verification`);
       } else {
         router.push(`/payment?orders=${encodeURIComponent(orderIds.join(','))}&method=${paymentMethod}`);
       }
     } catch (mutationError) {
       toast.error(normalizeApiError(mutationError, 'Authorization failed.'));
     }
+  };
+
+  const handleProofSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const uniqueSellers = Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id)));
+    if (uniqueSellers.some(sellerId => !paymentProofFiles[sellerId as string])) {
+      toast.error('All transaction screenshots are required.');
+      return;
+    }
+
+    try {
+      const proofUrls: Record<string, string> = {};
+      
+      // Upload proofs in parallel
+      const uploadPromises = uniqueSellers.map(async (sellerId) => {
+         const file = paymentProofFiles[sellerId as string];
+         const uploadRes = await uploadProof(file).unwrap();
+         proofUrls[sellerId as string] = uploadRes.data;
+      });
+      
+      await Promise.all(uploadPromises);
+      await executeCheckout(proofUrls);
+      setIsVerifyingPayment(false);
+    } catch (err) {
+      toast.error(normalizeApiError(err, 'Upload failed.'));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (validItemCount === 0) {
+      toast.error('Manifest is empty.');
+      return;
+    }
+
+    if (paymentMethod === 'boutique_account') {
+      setIsVerifyingPayment(true);
+      return;
+    }
+
+    await executeCheckout();
   };
 
   return (
@@ -344,19 +397,24 @@ const CheckoutPage = () => {
                         
                         <div className="space-y-4">
                            {[
-                             { id: 'card', label: 'Authorized Credit/Debit', desc: 'Secure encryption enabled' },
-                             { id: 'wallet', label: 'Boutique Digital Wallet', desc: 'Instant verification' },
-                             { id: 'cod', label: 'Cash on Delivery', desc: 'Verify on arrival' }
+                             { id: 'card', label: 'Stripe Payment Gateway', desc: 'Secure encryption enabled', icon: <IoCardOutline /> },
+                             { id: 'boutique_account', label: 'Boutique Account Transfer', desc: 'Direct Bank / JazzCash Verification', icon: <IoDiamondOutline /> },
+                             { id: 'cod', label: 'Cash on Delivery', desc: 'Verify on arrival', icon: <IoCheckmarkCircleOutline /> }
                            ].map((method) => (
                              <button 
                                key={method.id}
                                type="button"
                                onClick={() => setPaymentMethod(method.id as any)}
-                               className={`w-full flex items-center justify-between rounded-2xl border p-5 transition-all ${paymentMethod === method.id ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl' : 'border-zinc-100 bg-white hover:border-zinc-300'}`}
+                               className={`w-full flex items-center justify-between rounded-2xl border p-5 transition-all ${paymentMethod === method.id ? 'border-zinc-900 bg-zinc-900 text-white shadow-xl scale-[1.01]' : 'border-zinc-100 bg-white hover:border-zinc-300'}`}
                              >
-                               <div className="text-left">
-                                  <p className="text-sm font-bold">{method.label}</p>
-                                  <p className={`text-[9px] uppercase tracking-widest ${paymentMethod === method.id ? 'text-zinc-400' : 'text-zinc-400'}`}>{method.desc}</p>
+                               <div className="flex items-center gap-4">
+                                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${paymentMethod === method.id ? 'bg-white/10 text-white' : 'bg-zinc-50 text-zinc-400'}`}>
+                                     {method.icon}
+                                  </div>
+                                  <div className="text-left">
+                                     <p className="text-sm font-bold">{method.label}</p>
+                                     <p className={`text-[9px] uppercase tracking-widest ${paymentMethod === method.id ? 'text-zinc-400' : 'text-zinc-400'}`}>{method.desc}</p>
+                                  </div>
                                </div>
                                <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === method.id ? 'border-white bg-white/10' : 'border-zinc-200'}`}>
                                   {paymentMethod === method.id && <div className="h-2 w-2 rounded-full bg-white" />}
@@ -372,7 +430,7 @@ const CheckoutPage = () => {
                           disabled={placingOrder}
                           className="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-black px-6 py-5 text-[10px] font-black uppercase tracking-[0.3em] text-white transition-all hover:bg-zinc-800 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] disabled:bg-zinc-300"
                         >
-                          {placingOrder ? 'Authenticating...' : 'Authorize Final Transaction'}
+                          {placingOrder ? 'Authenticating...' : paymentMethod === 'cod' ? 'Confirm & Place Order' : 'Authorize Final Transaction'}
                         </button>
                         <div className="mt-6 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-widest text-zinc-400">
                           <IoShieldCheckmarkOutline className="text-xs" />
@@ -565,6 +623,200 @@ const CheckoutPage = () => {
               </div>
             )}
           </AnimatePresence>
+          {/* Payment Proof Modal using Portal to overlay everything */}
+          {isMounted && createPortal(
+            <AnimatePresence>
+              {isVerifyingPayment && (
+                <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
+                   <motion.div
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
+                     onClick={() => setIsVerifyingPayment(false)}
+                     className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+                   />
+                   <motion.div
+                     initial={{ scale: 0.95, opacity: 0, y: 40 }}
+                     animate={{ scale: 1, opacity: 1, y: 0 }}
+                     exit={{ scale: 0.95, opacity: 0, y: 40 }}
+                     transition={{ type: "spring", duration: 0.6, bounce: 0.3 }}
+                     className="relative w-full max-w-2xl overflow-hidden rounded-[2.5rem] bg-white shadow-2xl shadow-black/40 ring-1 ring-zinc-200"
+                   >
+                     <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 px-8 py-6 backdrop-blur-sm">
+                        <div className="space-y-1">
+                           <h3 className="text-2xl font-semibold tracking-tight text-zinc-900">Transfer Verification</h3>
+                           <p className="text-xs font-medium text-zinc-500">Secure manual payment gateway for LoopLab</p>
+                        </div>
+                        <button onClick={() => setIsVerifyingPayment(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-zinc-200 hover:bg-zinc-100 hover:ring-zinc-300 transition-all text-zinc-500">
+                           <IoCloseOutline className="text-xl" />
+                        </button>
+                     </div>
+
+                     <div className="max-h-[75vh] overflow-y-auto px-8 py-6 custom-scrollbar">
+                        <div className="space-y-8">
+                           {/* Bank Details Section */}
+                           <div className="space-y-5">
+                              <h4 className="flex items-center gap-2 text-sm font-bold tracking-tight text-zinc-900">
+                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-[10px] text-zinc-600">1</span>
+                                 Authorized Bank Credentials
+                              </h4>
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                 {/* Group by Unique Sellers */}
+                                 {Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id))).map((sellerId, idx) => {
+                                    const sellerProduct = cartResponse?.data?.cart?.items.find(item => item.product?.sellerId === sellerId)?.product;
+                                    if (!sellerProduct) return null;
+                                    
+                                    const sellerObj = typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId as any;
+                                    const storeLabel = sellerObj?.storeName || sellerObj?._id?.toString().slice(-6).toUpperCase() || 'HUB';
+                                    
+                                    // Parse legacy vs new bank fields
+                                    const hasNewFields = sellerObj?.bankName || sellerObj?.bankIBAN;
+                                    const legacyBankDetails = sellerObj?.bankDetails || '';
+                                    
+                                    // Fallbacks
+                                    const bankName = sellerObj?.bankName || (legacyBankDetails ? legacyBankDetails.split(',')[0] || 'Unknown Bank' : 'Bank details pending');
+                                    const accountHolder = sellerObj?.bankAccountHolderName || storeLabel;
+                                    const bankIban = sellerObj?.bankIBAN || legacyBankDetails || 'No details provided';
+
+                                    return (
+                                       <div key={idx} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md">
+                                          <div className="absolute right-0 top-0 h-16 w-16 -translate-y-8 translate-x-8 rounded-full bg-zinc-50 transition-transform group-hover:scale-150"></div>
+                                          <div className="relative">
+                                             <div className="mb-4 inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                                                <IoDiamondOutline /> {storeLabel}
+                                             </div>
+                                             <div className="space-y-3">
+                                                {!hasNewFields && legacyBankDetails ? (
+                                                   // Legacy merged display
+                                                   <div className="pt-2">
+                                                      <p className="text-[10px] font-semibold uppercase text-zinc-400">Banking Information</p>
+                                                      <div className="mt-1 flex items-center justify-between gap-2">
+                                                         <p className="text-xs font-medium text-zinc-800 break-words leading-snug">{legacyBankDetails}</p>
+                                                         <button onClick={() => {
+                                                            navigator.clipboard.writeText(legacyBankDetails);
+                                                            toast.success("Copied to clipboard!");
+                                                         }} className="shrink-0 rounded-lg bg-zinc-100 px-2 py-1 text-[10px] font-bold text-zinc-600 hover:bg-zinc-200 transition-colors">COPY</button>
+                                                      </div>
+                                                   </div>
+                                                ) : (
+                                                   // Granular display
+                                                   <>
+                                                      <div>
+                                                         <p className="text-[10px] font-semibold uppercase text-zinc-400">Bank Name</p>
+                                                         <p className="text-sm font-bold text-zinc-900">{bankName}</p>
+                                                      </div>
+                                                      <div>
+                                                         <p className="text-[10px] font-semibold uppercase text-zinc-400">Account Holder</p>
+                                                         <p className="text-sm font-bold text-zinc-900">{accountHolder}</p>
+                                                      </div>
+                                                      <div className="pt-2 border-t border-zinc-100">
+                                                         <p className="text-[10px] font-semibold uppercase text-zinc-400">IBAN / Account #</p>
+                                                         <div className="mt-1 flex items-center justify-between gap-2">
+                                                            <p className="text-sm font-mono font-bold tracking-widest text-zinc-800 break-all leading-tight">{bankIban}</p>
+                                                            {bankIban !== 'No details provided' && (
+                                                               <button onClick={() => {
+                                                                  navigator.clipboard.writeText(bankIban);
+                                                                  toast.success("Copied to clipboard!");
+                                                               }} className="shrink-0 rounded-lg bg-zinc-100 px-2 py-1 text-[10px] font-bold text-zinc-600 hover:bg-zinc-200 transition-colors">COPY</button>
+                                                            )}
+                                                         </div>
+                                                      </div>
+                                                   </>
+                                                )}
+                                             </div>
+                                          </div>
+                                       </div>
+                                    )
+                                 })}
+                              </div>
+                           </div>
+
+                           {/* Evidence Submission Section */}
+                           <div className="space-y-5">
+                              <h4 className="flex items-center gap-2 text-sm font-bold tracking-tight text-zinc-900">
+                                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-[10px] text-zinc-600">2</span>
+                                 Evidence Submission
+                              </h4>
+                              
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                 {Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id))).map((sellerId, idx) => {
+                                    const sellerProduct = cartResponse?.data?.cart?.items.find(item => item.product?.sellerId === sellerId)?.product;
+                                    if (!sellerProduct) return null;
+                                    
+                                    const sellerObj = typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId as any;
+                                    const storeLabel = sellerObj?.storeName || sellerObj?._id?.toString().slice(-6).toUpperCase() || 'HUB';
+                                    const file = paymentProofFiles[sellerId as string];
+
+                                    return (
+                                      <div key={idx} className="relative group overflow-hidden rounded-2xl">
+                                         <input 
+                                           type="file" 
+                                           accept="image/*"
+                                           onChange={(e) => {
+                                             const selected = e.target.files?.[0] || null;
+                                             if (selected) {
+                                                setPaymentProofFiles(prev => ({ ...prev, [sellerId as string]: selected }));
+                                             }
+                                           }}
+                                           className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
+                                         />
+                                         <div className={`flex h-full flex-col items-center justify-center gap-3 border-2 border-dashed p-6 transition-all ${file ? 'border-emerald-500 bg-emerald-50/50' : 'border-zinc-200 bg-zinc-50 hover:border-zinc-400 hover:bg-zinc-100'}`}>
+                                            {file ? (
+                                               <>
+                                                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-sm">
+                                                     <IoCheckmarkCircleOutline className="text-2xl" />
+                                                  </div>
+                                                  <div className="text-center w-full px-2">
+                                                     <p className="text-sm font-bold text-emerald-900 truncate">{file.name}</p>
+                                                     <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-widest mt-1">Store Verified</p>
+                                                  </div>
+                                               </>
+                                            ) : (
+                                               <>
+                                                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] text-zinc-400 transition-transform group-hover:-translate-y-1">
+                                                     <IoCloudUploadOutline className="text-xl" />
+                                                  </div>
+                                                  <div className="text-center w-full px-2">
+                                                     <p className="text-sm font-bold text-zinc-900">Upload Receipt</p>
+                                                     <p className="text-[10px] font-medium text-zinc-400 mt-1">{storeLabel}</p>
+                                                  </div>
+                                               </>
+                                            )}
+                                         </div>
+                                      </div>
+                                    );
+                                 })}
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+
+                     <div className="border-t border-zinc-100 bg-white p-6">
+                        <div className="flex gap-3">
+                           <button onClick={() => setIsVerifyingPayment(false)} className="flex-1 rounded-xl border border-zinc-200 bg-white py-3.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 hover:text-zinc-900 shadow-sm">
+                              Cancel
+                           </button>
+                           <button 
+                             onClick={handleProofSubmit}
+                             disabled={
+                               uploadingProof || 
+                               placingOrder || 
+                               Array.from(new Set(cartResponse?.data?.cart?.items.map(i => i.product?.sellerId).filter(id => !!id))).length !== Object.keys(paymentProofFiles).length
+                             }
+                             className="flex flex-[2] relative items-center justify-center overflow-hidden rounded-xl bg-black py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-black group"
+                           >
+                              <span className="relative z-10 flex items-center gap-2">
+                                 {uploadingProof ? 'Uploading...' : placingOrder ? 'Finalizing...' : 'Submit All & Place Order'}
+                              </span>
+                           </button>
+                        </div>
+                     </div>
+                   </motion.div>
+                 </div>
+               )}
+            </AnimatePresence>,
+            document.body
+          )}
         </section>
       )}
     </BuyerPageShell>

@@ -24,6 +24,7 @@ import {
   IoStatsChartOutline,
   IoStorefrontOutline,
   IoLockClosedOutline,
+  IoDiamondOutline,
 } from 'react-icons/io5';
 import { useGetSellerProfileQuery } from '@/store/sellerApi';
 
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { href: '/seller-dashboard/products', label: 'Products', icon: IoStorefrontOutline },
   { href: '/seller-dashboard/inventory', label: 'Inventory', icon: IoArchiveOutline },
   { href: '/seller-dashboard/orders', label: 'Orders', icon: IoBagHandleOutline },
+  { href: '/seller-dashboard/payments', label: 'Payments Received', icon: IoDiamondOutline },
   { href: '/seller-dashboard/messages', label: 'Messages', icon: IoChatbubbleEllipsesOutline },
   { href: '/seller-dashboard/coupons', label: 'Coupons', icon: IoPricetagOutline },
   { href: '/seller-dashboard/analytics', label: 'Analytics', icon: IoStatsChartOutline },

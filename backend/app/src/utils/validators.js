@@ -210,7 +210,8 @@ const checkoutSchema = z.object({
     country: z.string().min(1),
     zipCode: z.string().min(1),
   }),
-  paymentMethod: z.enum(['cod', 'card', 'wallet']),
+  paymentMethod: z.enum(['cod', 'card', 'wallet', 'boutique_account', 'stripe']),
+  paymentProof: z.union([z.string(), z.record(z.string())]).optional().nullable(),
 });
 
 const adminLoginSchema = z.object({

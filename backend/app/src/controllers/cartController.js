@@ -6,7 +6,11 @@ const getCart = async (req, res, next) => {
   try {
     let cart = await Cart.findOne({ buyerId: req.user._id }).populate({
       path: 'items.product',
-      select: 'productName price discountPrice productImages stockQuantity status'
+      select: 'productName price discountPrice productImages stockQuantity status sellerId',
+      populate: {
+        path: 'sellerId',
+        select: 'storeName bankAccountHolderName bankName bankIBAN bankDetails'
+      }
     }).lean();
 
     if (!cart) {

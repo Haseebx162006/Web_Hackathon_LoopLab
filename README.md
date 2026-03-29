@@ -332,3 +332,6 @@ Deployment docs in repository:
 
 ## 👨‍💻 Author
 LoopBazar Team
+Haseeb Ahmad  
+Hussain Jamal
+

@@ -87,7 +87,7 @@ const BuyerProductCard = ({
         <div className="flex items-start justify-between gap-3">
           <Link
             href={`/products/${product._id}`}
-            className={`line-clamp-2 font-black uppercase italic leading-[0.92] tracking-tight text-zinc-900 transition hover:text-zinc-600 ${compact ? 'text-xl' : 'text-2xl'}`}
+            className={`line-clamp-2.5 font-black uppercase italic leading-[0.99] tracking-tight text-zinc-900 transition hover:text-zinc-600 ${compact ? 'text-xl' : 'text-2xl'}`}
           >
             {product.productName}
           </Link>

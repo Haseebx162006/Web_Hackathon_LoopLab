@@ -285,6 +285,11 @@ export const adminApi = apiSlice.injectEndpoints({
       },
     }),
 
+    getAdminProductById: builder.query<ApiResponse<AdminProductSummary>, string>({
+      query: (id) => `/admin/products/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'AdminProduct', id }],
+    }),
+
     approveAdminProduct: builder.mutation<ApiResponse<{ id: string; status: string }>, string>({
       query: (id) => ({
         url: `/admin/products/${id}/approve`,
@@ -391,6 +396,7 @@ export const {
   useGetAdminUserByIdQuery,
   useUpdateAdminUserStatusMutation,
   useGetAdminProductsQuery,
+  useGetAdminProductByIdQuery,
   useApproveAdminProductMutation,
   useRejectAdminProductMutation,
   useFlagAdminProductMutation,

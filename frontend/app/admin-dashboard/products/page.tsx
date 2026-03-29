@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import type { RootState } from '@/store/store';
@@ -8,6 +8,7 @@ import {
   type AdminProductSummary,
   useApproveAdminProductMutation,
   useFlagAdminProductMutation,
+  useGetAdminProductByIdQuery,
   useGetAdminProductsQuery,
   useRejectAdminProductMutation,
 } from '@/store/adminApi';
@@ -37,7 +38,8 @@ const ProductModerationPage = () => {
   const [searchInput, setSearchInput] = useState('');
   const [searchValue, setSearchValue] = useState('');
   const [page, setPage] = useState(1);
-  const [selectedProduct, setSelectedProduct] = useState<AdminProductSummary | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
   const {
     data: productsResponse,
@@ -57,12 +59,23 @@ const ProductModerationPage = () => {
     { skip: !isAdmin }
   );
 
+  const {
+    data: selectedProductResponse,
+    isLoading: selectedProductLoading,
+    isError: selectedProductError,
+    error: selectedProductErrorObject,
+    refetch: refetchSelectedProduct,
+  } = useGetAdminProductByIdQuery(selectedProductId || '', {
+    skip: !isAdmin || !selectedProductId,
+  });
+
   const [approveProduct, { isLoading: approving }] = useApproveAdminProductMutation();
   const [rejectProduct, { isLoading: rejecting }] = useRejectAdminProductMutation();
   const [flagProduct, { isLoading: flagging }] = useFlagAdminProductMutation();
 
   const products = useMemo(() => productsResponse?.data?.products ?? [], [productsResponse?.data?.products]);
   const pagination = productsResponse?.data?.pagination;
+  const selectedProduct = selectedProductResponse?.data;
 
   const summary = useMemo(() => {
     return products.reduce(
@@ -189,6 +202,20 @@ const ProductModerationPage = () => {
       toast.success(product.isFlagged ? 'Flag removed from product' : 'Product flagged for review');
     } catch (mutationError) {
       toast.error(normalizeApiError(mutationError, 'Unable to update product flag'));
+    }
+  };
+
+  const handleViewProduct = (productId: string) => {
+    if (selectedProductId === productId) {
+      void refetchSelectedProduct();
+    } else {
+      setSelectedProductId(productId);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
   };
 
@@ -365,13 +392,23 @@ const ProductModerationPage = () => {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedProduct(product)}
-                          className="rounded-lg border-2 border-zinc-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-700 transition hover:border-zinc-900 hover:bg-zinc-900 hover:text-white"
-                        >
-                          View
-                        </button>
+                        {selectedProductId === product._id ? (
+                          <button
+                            type="button"
+                            onClick={() => handleViewProduct(product._id)}
+                            className="rounded-lg border-2 border-zinc-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-900"
+                          >
+                            Viewing
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleViewProduct(product._id)}
+                            className="rounded-lg border-2 border-zinc-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-700 transition hover:border-zinc-900 hover:bg-zinc-900 hover:text-white"
+                          >
+                            View
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -444,81 +481,100 @@ const ProductModerationPage = () => {
         </AdminCard>
 
         <AdminCard>
-          <div className="mb-5 border-b border-zinc-200 pb-4">
-            <h2 className="text-xl font-black tracking-tight text-black">Product Details</h2>
-            <p className="mt-1 text-sm font-semibold text-zinc-500">Select a product row to review moderation context.</p>
-          </div>
-
-          {!selectedProduct ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-8 text-center">
-              <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100">
-                <svg className="h-8 w-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-              </div>
-              <p className="text-sm font-semibold text-zinc-500">No product selected yet</p>
-              <p className="mt-1 text-xs text-zinc-400">Click "View" on any product to see details</p>
+          <div ref={detailPanelRef}>
+            <div className="mb-5 border-b border-zinc-200 pb-4">
+              <h2 className="text-xl font-black tracking-tight text-black">Product Details</h2>
+              <p className="mt-1 text-sm font-semibold text-zinc-500">Select a product row to review moderation context.</p>
             </div>
-          ) : null}
 
-          {selectedProduct ? (
-            <div className="space-y-4">
-              <div className="rounded-2xl border-2 border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-5 shadow-sm">
-                <div className="mb-4">
-                  <p className="text-lg font-black text-zinc-900">{selectedProduct.productName}</p>
-                  <p className="mt-1 text-xs font-semibold text-zinc-500">SKU: {selectedProduct.skuCode}</p>
+            {!selectedProductId ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-8 text-center">
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-zinc-100">
+                  <svg className="h-8 w-8 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                  </svg>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Status</p>
-                    <div className="mt-2">
-                      <AdminStatusBadge status={selectedProduct.status} />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Flag Status</p>
-                    <div className="mt-2">
-                      <AdminStatusBadge status={selectedProduct.isFlagged ? 'flagged' : 'clean'} />
-                    </div>
-                  </div>
-                </div>
+                <p className="text-sm font-semibold text-zinc-500">No product selected yet</p>
+                <p className="mt-1 text-xs text-zinc-400">Click "View" on any product to see details</p>
               </div>
+            ) : null}
 
-              <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5">
-                <div className="border-b border-zinc-100 pb-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Description</p>
-                  <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.description || '--'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 border-b border-zinc-100 pb-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Category</p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.category}</p>
+            {selectedProductLoading ? (
+              <div className="mt-5">
+                <AdminLoader compact label="Loading product details..." />
+              </div>
+            ) : null}
+
+            {selectedProductId && selectedProductError ? (
+              <div className="mt-5">
+                <AdminErrorState
+                  message={normalizeApiError(selectedProductErrorObject, 'Unable to load selected product')}
+                  onRetry={() => {
+                    void refetchSelectedProduct();
+                  }}
+                />
+              </div>
+            ) : null}
+
+            {selectedProduct ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-5 shadow-sm">
+                  <div className="mb-4">
+                    <p className="text-lg font-black text-zinc-900">{selectedProduct.productName}</p>
+                    <p className="mt-1 text-xs font-semibold text-zinc-500">SKU: {selectedProduct.skuCode}</p>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Stock Quantity</p>
-                    <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.stockQuantity}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 border-b border-zinc-100 pb-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Price</p>
-                    <p className="mt-1 text-sm font-black text-zinc-900">{formatCurrency(selectedProduct.price)}</p>
-                  </div>
-                  {typeof selectedProduct.discountPrice === 'number' && selectedProduct.discountPrice > 0 ? (
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Discount Price</p>
-                      <p className="mt-1 text-sm font-black text-emerald-700">{formatCurrency(selectedProduct.discountPrice)}</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Status</p>
+                      <div className="mt-2">
+                        <AdminStatusBadge status={selectedProduct.status} />
+                      </div>
                     </div>
-                  ) : null}
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Flag Status</p>
+                      <div className="mt-2">
+                        <AdminStatusBadge status={selectedProduct.isFlagged ? 'flagged' : 'clean'} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Created At</p>
-                  <p className="mt-1 text-sm font-semibold text-zinc-700">{formatDateTime(selectedProduct.createdAt)}</p>
+
+                <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-5">
+                  <div className="border-b border-zinc-100 pb-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Description</p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.description || '--'}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 border-b border-zinc-100 pb-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Category</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.category}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Stock Quantity</p>
+                      <p className="mt-1 text-sm font-semibold text-zinc-700">{selectedProduct.stockQuantity}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 border-b border-zinc-100 pb-3">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Price</p>
+                      <p className="mt-1 text-sm font-black text-zinc-900">{formatCurrency(selectedProduct.price)}</p>
+                    </div>
+                    {typeof selectedProduct.discountPrice === 'number' && selectedProduct.discountPrice > 0 ? (
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Discount Price</p>
+                        <p className="mt-1 text-sm font-black text-emerald-700">{formatCurrency(selectedProduct.discountPrice)}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-400">Created At</p>
+                    <p className="mt-1 text-sm font-semibold text-zinc-700">{formatDateTime(selectedProduct.createdAt)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </AdminCard>
       </div>
     </div>

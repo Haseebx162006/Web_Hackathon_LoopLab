@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
+const REVENUE_RECOGNIZED_STATUSES = ['processing', 'confirmed', 'packed', 'shipped', 'delivered'];
+
 const getDashboard = async (req, res, next) => {
   try {
     const sid = new mongoose.Types.ObjectId(req.user._id);
@@ -19,7 +21,7 @@ const getDashboard = async (req, res, next) => {
           },
           totalSales: {
             $sum: {
-              $cond: [{ $eq: ['$status', 'delivered'] }, '$totalAmount', 0],
+              $cond: [{ $in: ['$status', REVENUE_RECOGNIZED_STATUSES] }, '$totalAmount', 0],
             },
           },
         },
@@ -52,7 +54,7 @@ const getDashboard = async (req, res, next) => {
       {
         $match: {
           sellerId: sid,
-          status: 'delivered', // Only counting completed sales
+          status: { $in: REVENUE_RECOGNIZED_STATUSES },
           createdAt: { $gte: sevenDaysAgo }
         }
       },

@@ -40,6 +40,24 @@ const getAllProducts = async (req, res, next) => {
   }
 };
 
+const getProductById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const product = await Product.findById(id).populate('sellerId', 'storeName email');
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: product,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const approveProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -92,6 +110,7 @@ const flagProduct = async (req, res, next) => {
 
 module.exports = {
   getAllProducts,
+  getProductById,
   approveProduct,
   rejectProduct,
   flagProduct,

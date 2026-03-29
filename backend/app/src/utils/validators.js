@@ -211,7 +211,8 @@ const checkoutSchema = z.object({
     zipCode: z.string().min(1),
   }),
   paymentMethod: z.enum(['cod', 'card', 'wallet', 'boutique_account', 'stripe']),
-  paymentProof: z.union([z.string(), z.record(z.string())]).optional().nullable(),
+  // Zod v4 requires explicit key and value schemas for record.
+  paymentProof: z.union([z.string(), z.record(z.string(), z.string())]).optional().nullable(),
 });
 
 const adminLoginSchema = z.object({

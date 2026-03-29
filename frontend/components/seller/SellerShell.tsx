@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
@@ -60,13 +60,12 @@ const SellerShell = ({ children }: SellerShellProps) => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-    return localStorage.getItem('seller_sidebar_collapsed') === 'true';
-  });
+  useEffect(() => {
+    const storedValue = localStorage.getItem('seller_sidebar_collapsed');
+    setIsSidebarCollapsed(storedValue === 'true');
+  }, []);
   
   // Fetch seller profile to check completion status
   const { data: profileResponse } = useGetSellerProfileQuery();

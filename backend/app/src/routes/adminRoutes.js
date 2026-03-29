@@ -4,7 +4,7 @@ const { isAdmin } = require('../middleware/roleMiddleware');
 const { adminLogin } = require('../controllers/adminAuthController');
 const { getDashboardStats } = require('../controllers/adminDashboardController');
 const { getAllUsers, getUserById, updateUserStatus } = require('../controllers/adminUserController');
-const { getAllProducts, approveProduct, rejectProduct, flagProduct } = require('../controllers/adminProductController');
+const { getAllProducts, getProductById, approveProduct, rejectProduct, flagProduct } = require('../controllers/adminProductController');
 const { getAllOrders, getOrderById } = require('../controllers/adminOrderController');
 const { getAllPayments, getSinglePayment, getRefundLogs } = require('../controllers/adminPaymentController');
 const { getPlatformAnalytics } = require('../controllers/adminAnalyticsController');
@@ -27,6 +27,7 @@ router.patch('/users/:id/status', updateUserStatus);
 
 // Product Moderation
 router.get('/products', getAllProducts);
+router.get('/products/:id', getProductById);
 router.patch('/products/:id/approve', approveProduct);
 router.patch('/products/:id/reject', rejectProduct);
 router.patch('/products/:id/flag', flagProduct);

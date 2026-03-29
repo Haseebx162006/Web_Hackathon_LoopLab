@@ -59,7 +59,17 @@ const LocationPicker = dynamic(() => import('@/components/maps/LocationPicker'),
 const CheckoutPage = () => {
   const router = useRouter();
   const { role, isAuthenticated } = useSelector((state: RootState) => state.auth);
-  const isBuyer = (role === 'buyer' && isAuthenticated) || isBuyerAuthenticated();
+
+  // Keep first render deterministic across server and client to avoid hydration mismatches.
+  const [isMounted, setIsMounted] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const isBuyer =
+    isMounted && ((role === 'buyer' && isAuthenticated) || isBuyerAuthenticated());
 
   const {
     data: cartResponse,
@@ -79,14 +89,7 @@ const CheckoutPage = () => {
   const [addAddress, { isLoading: addingAddress }] = useAddBuyerAddressMutation();
 
   const user = profileResponse?.data;
-
-  // Checkout Stages
-  const [isMounted, setIsMounted] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const addresses = user?.addresses ?? [];
 
   // Multi-step State
   const [name, setName] = useState('');
@@ -94,7 +97,11 @@ const CheckoutPage = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newAddress, setNewAddress] = useState<Partial<BuyerAddress>>({
     label: 'Home',
+    street: '',
+    city: '',
+    state: '',
     country: 'Pakistan',
+    zipCode: '',
   });
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'wallet' | 'boutique_account' | 'stripe'>('card');
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
@@ -106,16 +113,40 @@ const CheckoutPage = () => {
   const [createPaymentIntent, { isLoading: creatingIntent }] = useCreatePaymentIntentMutation();
   const [uploadProof, { isLoading: uploadingProof }] = useUploadPaymentProofMutation();
 
+  const queryErrorStatus =
+    error && typeof error === 'object' && 'status' in error
+      ? (error as { status?: number | string }).status
+      : null;
+  const isAuthError = queryErrorStatus === 401 || queryErrorStatus === 403;
+
   // Sync profile data once loaded
   useEffect(() => {
     if (user) {
       setName(user.name || '');
-      const defaultAddr = user.addresses.find(a => a.isDefault) || user.addresses[0];
-      if (defaultAddr && !selectedAddressId) {
-        setSelectedAddressId(defaultAddr._id);
-      }
+      setSelectedAddressId((current) => {
+        if (current) {
+          return current;
+        }
+
+        const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+        return defaultAddr?._id ?? null;
+      });
     }
-  }, [user]);
+  }, [addresses, user]);
+
+  useEffect(() => {
+    if (!isAuthError) {
+      return;
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+  }, [isAuthError]);
+
+  const selectedAddress = useMemo(
+    () => addresses.find((a) => a._id === selectedAddressId) ?? null,
+    [addresses, selectedAddressId]
+  );
 
   const subtotal = cartResponse?.data?.subtotal ?? 0;
 
@@ -211,7 +242,7 @@ const CheckoutPage = () => {
   };
 
   const executeCheckout = async (proofUrls?: Record<string, string>) => {
-    const finalAddress = user?.addresses.find(a => a._id === selectedAddressId);
+    const finalAddress = selectedAddress;
     if (!finalAddress) {
       toast.error('Invalid shipping selection.');
       return;
@@ -300,8 +331,19 @@ const CheckoutPage = () => {
 
   return (
     <BuyerPageShell>
-      {!isBuyer ? (
-        <BuyerAuthGate title="Checkout is for buyers" description="Login with your buyer account to place an order." />
+      {!isMounted ? (
+        <section className="mx-auto max-w-2xl rounded-[2rem] border border-zinc-100 bg-white/85 p-8 text-center shadow-sm">
+          <BuyerLoader label="Preparing checkout..." />
+        </section>
+      ) : !isBuyer || isAuthError ? (
+        <BuyerAuthGate
+          title={isAuthError ? 'Session expired' : 'Checkout is for buyers'}
+          description={
+            isAuthError
+              ? 'Your buyer session is no longer valid. Please login again to continue checkout.'
+              : 'Login with your buyer account to place an order.'
+          }
+        />
       ) : (
         <section className="space-y-12">
           {/* Page Header */}
@@ -404,7 +446,7 @@ const CheckoutPage = () => {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                           {user?.addresses.map((addr) => (
+                          {addresses.map((addr) => (
                               <button 
                                 key={addr._id}
                                 onClick={() => setSelectedAddressId(addr._id)}
@@ -573,11 +615,11 @@ const CheckoutPage = () => {
                    </div>
                 </div>
                 
-                {selectedAddressId && (
+                 {selectedAddress && (
                    <div className="bg-zinc-50/50 rounded-2xl p-6 space-y-2 border border-zinc-100">
                       <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Verified Destination</p>
                       <p className="text-[10px] font-bold text-zinc-800 line-clamp-2 uppercase leading-relaxed">
-                         {user?.addresses.find(a => a._id === selectedAddressId)?.street}, {user?.addresses.find(a => a._id === selectedAddressId)?.city}
+                       {selectedAddress?.street}, {selectedAddress?.city}
                       </p>
                    </div>
                 )}
@@ -636,7 +678,7 @@ const CheckoutPage = () => {
                         <div className="space-y-2">
                           <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 ml-2">Location Identifier</label>
                           <input
-                            value={newAddress.label}
+                            value={newAddress.label ?? ''}
                             onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
                             className="w-full rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-4 text-sm font-semibold text-zinc-700 outline-none focus:border-black"
                             required
@@ -646,7 +688,7 @@ const CheckoutPage = () => {
                         <div className="space-y-2">
                           <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 ml-2">City</label>
                           <input
-                            value={newAddress.city}
+                            value={newAddress.city ?? ''}
                             onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
                             className="w-full rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-4 text-sm font-semibold text-zinc-700 outline-none focus:border-black"
                             required
@@ -657,7 +699,7 @@ const CheckoutPage = () => {
                       <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400 ml-2">Precise Street Identity</label>
                         <textarea
-                          value={newAddress.street}
+                          value={newAddress.street ?? ''}
                           onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
                           className="w-full min-h-[100px] rounded-2xl border border-zinc-100 bg-zinc-50 px-5 py-4 text-sm font-semibold text-zinc-700 outline-none focus:border-black resize-none"
                           required

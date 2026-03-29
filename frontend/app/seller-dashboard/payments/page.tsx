@@ -6,7 +6,6 @@ import {
   useVerifySellerPaymentMutation,
   type SellerOrder
 } from '@/store/sellerApi';
-import SellerShell from '@/components/seller/SellerShell';
 import SellerPageHeader from '@/components/seller/SellerPageHeader';
 import SellerLoader from '@/components/seller/SellerLoader';
 import SellerErrorState from '@/components/seller/SellerErrorState';
@@ -46,7 +45,7 @@ const PaymentsReceivedPage = () => {
   };
 
   return (
-    <SellerShell>
+    <>
       <div className="space-y-8 pb-20">
         <SellerPageHeader 
           title="Payments Received" 
@@ -223,7 +222,7 @@ const PaymentsReceivedPage = () => {
           </div>
         )}
       </AnimatePresence>
-    </SellerShell>
+    </>
   );
 };
 

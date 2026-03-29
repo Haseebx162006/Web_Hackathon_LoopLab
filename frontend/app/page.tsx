@@ -11,14 +11,26 @@ import Footer from "@/components/Footer";
 import CinematicPreloader from "@/components/CinematicPreloader";
 import { AnimatePresence } from "framer-motion";
 
+let hasPlayedHomePreloader = false;
+
 export default function Home() {
-  const [showPreloader, setShowPreloader] = useState(true);
+  const [showPreloader, setShowPreloader] = useState(!hasPlayedHomePreloader);
+
+  const handlePreloaderComplete = () => {
+    setShowPreloader(false);
+  };
+
+  React.useEffect(() => {
+    if (showPreloader) {
+      hasPlayedHomePreloader = true;
+    }
+  }, [showPreloader]);
 
   return (
     <div className="min-h-screen">
       <AnimatePresence>
         {showPreloader && (
-          <CinematicPreloader onComplete={() => setShowPreloader(false)} />
+          <CinematicPreloader onComplete={handlePreloaderComplete} />
         )}
       </AnimatePresence>
       

@@ -140,7 +140,7 @@ const DashboardHomePage = () => {
         <SellerStatCard
           title="Total Sales"
           value={formatCurrency(dashboard?.totalSales ?? 0)}
-          hint="Delivered"
+          hint="Recognized revenue"
           style={{ backgroundColor: 'rgba(216, 180, 254, 0.15)' }}
         />
         <SellerStatCard

@@ -5,6 +5,9 @@ import Link from "next/link";
 import AuthChoice from "./AuthChoice";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store/store";
+import { useGetBuyerCartQuery, useGetBuyerWishlistQuery } from "../store/buyerApi";
+import { IoHeartOutline, IoBagHandleOutline } from "react-icons/io5";
+import BuyerWishlistModal from "./buyer/BuyerWishlistModal";
 
 const getProfileRoute = (role: "buyer" | "seller" | "admin" | null) => {
   if (role === "admin") return "/admin-dashboard";
@@ -17,10 +20,23 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [storedToken, setStoredToken] = useState<string | null>(null);
   const [storedRole, setStoredRole] = useState<"buyer" | "seller" | "admin" | null>(null);
 
   const { isAuthenticated, token, role } = useSelector((state: RootState) => state.auth);
+  
+  const isBuyer = role === "buyer" && isAuthenticated;
+
+  const { data: cartResponse } = useGetBuyerCartQuery(undefined, {
+    skip: !isBuyer,
+  });
+  const { data: wishlistResponse } = useGetBuyerWishlistQuery(undefined, {
+    skip: !isBuyer,
+  });
+
+  const cartCount = cartResponse?.data?.cart?.items?.length ?? 0;
+  const wishlistCount = wishlistResponse?.data?.items?.length ?? 0;
 
   useEffect(() => {
     const syncAuthFromStorage = () => {
@@ -106,27 +122,40 @@ const Header = () => {
           )}
 
           {isLoggedIn && (
-            <>
-              <button className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/5 transition-all duration-300 hover:bg-black hover:text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="8" cy="21" r="1" />
-                  <circle cx="19" cy="21" r="1" />
-                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-                </svg>
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white ring-2 ring-white">
-                  3
+            <div className="flex items-center gap-3">
+              {isBuyer ? (
+                <>
+                  <button
+                    onClick={() => setIsWishlistOpen(true)}
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/5 transition-all duration-300 hover:bg-rose-50 hover:text-rose-600"
+                    aria-label="Wishlist"
+                  >
+                    <IoHeartOutline className="text-xl" />
+                    {wishlistCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-bold text-white ring-2 ring-white">
+                        {wishlistCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <Link
+                    href="/cart"
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full bg-black/5 transition-all duration-300 hover:bg-black hover:text-white"
+                    aria-label="Cart"
+                  >
+                    <IoBagHandleOutline className="text-xl" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white ring-2 ring-white">
+                        {cartCount}
+                      </span>
+                    )}
+                  </Link>
+                </>
+              ) : (
+                <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  {role}
                 </span>
-              </button>
+              )}
 
               <Link
                 href={profileRoute}
@@ -148,7 +177,7 @@ const Header = () => {
                   <circle cx="12" cy="7" r="4" />
                 </svg>
               </Link>
-            </>
+            </div>
           )}
 
           <button
@@ -204,11 +233,31 @@ const Header = () => {
             </>
           )}
 
+          {isLoggedIn && isBuyer && (
+            <button
+              onClick={() => { setIsWishlistOpen(true); setIsMenuOpen(false); }}
+              className="w-[80%] py-4 rounded-2xl border border-zinc-100 bg-white text-zinc-900 text-xs font-black uppercase tracking-[0.3em] shadow-sm flex items-center justify-center gap-2"
+            >
+              <IoHeartOutline className="text-lg text-rose-500" />
+              Wishlist ({wishlistCount})
+            </button>
+          )}
+
+          {isLoggedIn && isBuyer && (
+            <Link
+              href="/cart"
+              onClick={() => setIsMenuOpen(false)}
+              className="w-[80%] py-4 rounded-2xl bg-zinc-900 text-white text-xs font-black uppercase tracking-[0.3em] shadow-xl text-center"
+            >
+              Cart ({cartCount})
+            </Link>
+          )}
+
           {isLoggedIn && (
             <Link
               href={profileRoute}
               onClick={() => setIsMenuOpen(false)}
-              className="w-[80%] py-4 rounded-2xl bg-black text-white text-xs font-black uppercase tracking-[0.3em] shadow-xl text-center"
+              className="w-[80%] py-4 rounded-2xl bg-white text-black border border-zinc-100 text-xs font-black uppercase tracking-[0.3em] shadow-sm text-center"
             >
               Profile
             </Link>
@@ -218,6 +267,9 @@ const Header = () => {
 
       {/* Auth Choice Modal */}
       <AuthChoice isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+
+      {/* Wishlist Modal */}
+      <BuyerWishlistModal isOpen={isWishlistOpen} onClose={() => setIsWishlistOpen(false)} />
     </header>
   );
 };

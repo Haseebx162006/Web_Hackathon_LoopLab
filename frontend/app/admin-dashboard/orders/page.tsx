@@ -1,16 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import toast from 'react-hot-toast';
 import type { RootState } from '@/store/store';
 import {
   type AdminOrderSummary,
   useGetAdminOrderByIdQuery,
   useGetAdminOrdersQuery,
-  useUpdateAdminOrderRefundMutation,
-  useUpdateAdminOrderReturnMutation,
-  useUpdateAdminOrderStatusMutation,
 } from '@/store/adminApi';
 import AdminCard from '@/components/admin/AdminCard';
 import AdminErrorState from '@/components/admin/AdminErrorState';
@@ -57,6 +53,7 @@ const OrderManagementPage = () => {
   const [refundFilter, setRefundFilter] = useState<'none' | 'pending' | 'completed' | ''>('');
   const [page, setPage] = useState(1);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const detailPanelRef = useRef<HTMLDivElement | null>(null);
 
   const {
     data: ordersResponse,
@@ -86,50 +83,21 @@ const OrderManagementPage = () => {
     skip: !isAdmin || !selectedOrderId,
   });
 
-  const [updateStatus, { isLoading: updatingStatus }] = useUpdateAdminOrderStatusMutation();
-  const [updateReturn, { isLoading: updatingReturn }] = useUpdateAdminOrderReturnMutation();
-  const [updateRefund, { isLoading: updatingRefund }] = useUpdateAdminOrderRefundMutation();
-
   const orders = ordersResponse?.data?.orders ?? [];
   const pagination = ordersResponse?.data?.pagination;
   const selectedOrder = selectedOrderResponse?.data;
 
-  const handleStatusSave = async (status: AdminOrderSummary['status']) => {
-    if (!selectedOrder) {
-      return;
+  const handleViewOrder = (orderId: string) => {
+    if (selectedOrderId === orderId) {
+      void refetchSelectedOrder();
+    } else {
+      setSelectedOrderId(orderId);
     }
 
-    try {
-      await updateStatus({ id: selectedOrder._id, status }).unwrap();
-      toast.success('Order status updated');
-    } catch (mutationError) {
-      toast.error(normalizeApiError(mutationError, 'Unable to update order status'));
-    }
-  };
-
-  const handleReturnSave = async (returnStatus: 'none' | 'requested' | 'approved' | 'rejected') => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    try {
-      await updateReturn({ id: selectedOrder._id, returnStatus }).unwrap();
-      toast.success('Return status updated');
-    } catch (mutationError) {
-      toast.error(normalizeApiError(mutationError, 'Unable to update return status'));
-    }
-  };
-
-  const handleRefundSave = async (refundStatus: 'none' | 'pending' | 'completed') => {
-    if (!selectedOrder) {
-      return;
-    }
-
-    try {
-      await updateRefund({ id: selectedOrder._id, refundStatus }).unwrap();
-      toast.success('Refund status updated');
-    } catch (mutationError) {
-      toast.error(normalizeApiError(mutationError, 'Unable to update refund status'));
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        detailPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
   };
 
@@ -137,7 +105,7 @@ const OrderManagementPage = () => {
     <div className="space-y-8">
       <AdminPageHeader
         title="Order Management"
-        description="Monitor order lifecycle, review return workflows, and control refund outcomes."
+        description="Monitor order lifecycle and review return/refund workflows across the platform."
       />
 
       <AdminCard>
@@ -256,13 +224,23 @@ const OrderManagementPage = () => {
                   </td>
                   <td className="px-4 py-3 text-sm font-black text-zinc-900">{formatCurrency(order.totalAmount)}</td>
                   <td className="px-4 py-3">
+                    {selectedOrderId === order._id ? (
+                      <button
+                        type="button"
+                        onClick={() => handleViewOrder(order._id)}
+                        className="rounded-lg border border-zinc-900 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-900"
+                      >
+                        Viewing
+                      </button>
+                    ) : (
                     <button
                       type="button"
-                      onClick={() => setSelectedOrderId(order._id)}
+                      onClick={() => handleViewOrder(order._id)}
                       className="rounded-lg border border-zinc-300 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
                     >
-                      View / Edit
+                      View
                     </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -303,115 +281,83 @@ const OrderManagementPage = () => {
         </AdminCard>
 
         <AdminCard>
-          <h2 className="text-xl font-black tracking-tight text-black">Order Detail & Controls</h2>
-          <p className="mt-1 text-sm font-semibold text-zinc-500">Select an order to review item details and apply status updates.</p>
+          <div ref={detailPanelRef}>
+            <h2 className="text-xl font-black tracking-tight text-black">Order Detail</h2>
+            <p className="mt-1 text-sm font-semibold text-zinc-500">Select an order to review item details. Order updates are managed by the store owner (seller).</p>
 
-          {!selectedOrderId ? (
-            <p className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
-              No order selected yet.
-            </p>
-          ) : null}
+            {!selectedOrderId ? (
+              <p className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+                No order selected yet.
+              </p>
+            ) : null}
 
-          {selectedOrderLoading ? <div className="mt-5"><AdminLoader compact label="Loading order details..." /></div> : null}
+            {selectedOrderLoading ? <div className="mt-5"><AdminLoader compact label="Loading order details..." /></div> : null}
 
-          {selectedOrderId && selectedOrderError ? (
-            <div className="mt-5">
-              <AdminErrorState
-                message={normalizeApiError(selectedOrderErrorObject, 'Unable to load selected order')}
-                onRetry={() => {
-                  void refetchSelectedOrder();
-                }}
-              />
-            </div>
-          ) : null}
-
-          {selectedOrder ? (
-            <div className="mt-5 space-y-4">
-              <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
-                <p className="text-sm font-black text-zinc-900">Order #{selectedOrder._id.slice(-8)}</p>
-                <p className="mt-1 text-xs font-semibold text-zinc-500">Created: {formatDateTime(selectedOrder.createdAt)}</p>
-                <p className="mt-1 text-xs font-semibold text-zinc-500">Tracking: {selectedOrder.trackingId || '--'}</p>
-                <p className="mt-1 text-xs font-semibold text-zinc-500">Total: {formatCurrency(selectedOrder.totalAmount)}</p>
+            {selectedOrderId && selectedOrderError ? (
+              <div className="mt-5">
+                <AdminErrorState
+                  message={normalizeApiError(selectedOrderErrorObject, 'Unable to load selected order')}
+                  onRetry={() => {
+                    void refetchSelectedOrder();
+                  }}
+                />
               </div>
+            ) : null}
 
-              <div className="rounded-2xl border border-zinc-100 bg-white p-4">
-                <h3 className="text-sm font-black uppercase tracking-[0.14em] text-zinc-500">Items</h3>
-                <ul className="mt-3 space-y-2">
-                  {selectedOrder.items.map((item) => {
-                    const productName =
-                      typeof item.product === 'string' || !item.product
-                        ? 'Product'
-                        : item.product.productName || item.product.skuCode || 'Product';
+            {selectedOrder ? (
+              <div className="mt-5 space-y-4">
+                <div className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+                  <p className="text-sm font-black text-zinc-900">Order #{selectedOrder._id.slice(-8)}</p>
+                  <p className="mt-1 text-xs font-semibold text-zinc-500">Created: {formatDateTime(selectedOrder.createdAt)}</p>
+                  <p className="mt-1 text-xs font-semibold text-zinc-500">Tracking: {selectedOrder.trackingId || '--'}</p>
+                  <p className="mt-1 text-xs font-semibold text-zinc-500">Total: {formatCurrency(selectedOrder.totalAmount)}</p>
+                </div>
 
-                    return (
-                      <li key={item._id || `${selectedOrder._id}-${productName}`} className="rounded-xl border border-zinc-100 bg-zinc-50 p-3">
-                        <p className="text-sm font-black text-zinc-900">{productName}</p>
-                        <p className="text-xs font-semibold text-zinc-500">
-                          Qty: {item.quantity} · Line total: {formatCurrency(item.quantity * item.priceAtPurchase)}
-                        </p>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <div className="rounded-2xl border border-zinc-100 bg-white p-4">
+                  <h3 className="text-sm font-black uppercase tracking-[0.14em] text-zinc-500">Items</h3>
+                  <ul className="mt-3 space-y-2">
+                    {selectedOrder.items.map((item) => {
+                      const productName =
+                        typeof item.product === 'string' || !item.product
+                          ? 'Product'
+                          : item.product.productName || item.product.skuCode || 'Product';
+
+                      return (
+                        <li key={item._id || `${selectedOrder._id}-${productName}`} className="rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                          <p className="text-sm font-black text-zinc-900">{productName}</p>
+                          <p className="text-xs font-semibold text-zinc-500">
+                            Qty: {item.quantity} · Line total: {formatCurrency(item.quantity * item.priceAtPurchase)}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                <div className="space-y-3 rounded-2xl border border-zinc-100 bg-white p-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Order Status Snapshot</p>
+                  <p className="text-xs font-semibold text-zinc-500">
+                    Admin access is read-only for order status changes. Sellers control order, return, and refund updates.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="space-y-1 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Order</p>
+                      <AdminStatusBadge status={selectedOrder.status} />
+                    </div>
+                    <div className="space-y-1 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Return</p>
+                      <AdminStatusBadge status={selectedOrder.returnStatus || 'none'} />
+                    </div>
+                    <div className="space-y-1 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">Refund</p>
+                      <AdminStatusBadge status={selectedOrder.refundStatus || 'none'} />
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              <div className="space-y-3 rounded-2xl border border-zinc-100 bg-white p-4">
-                <label className="space-y-1 block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Order Status</span>
-                  <select
-                    value={selectedOrder.status}
-                    onChange={(event) => {
-                      void handleStatusSave(event.target.value as AdminOrderSummary['status']);
-                    }}
-                    disabled={updatingStatus}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-black disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {ORDER_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status.replace(/_/g, ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="space-y-1 block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Return Status</span>
-                  <select
-                    value={selectedOrder.returnStatus || 'none'}
-                    onChange={(event) => {
-                      void handleReturnSave(event.target.value as 'none' | 'requested' | 'approved' | 'rejected');
-                    }}
-                    disabled={updatingReturn}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-black disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {RETURN_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="space-y-1 block">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">Refund Status</span>
-                  <select
-                    value={selectedOrder.refundStatus || 'none'}
-                    onChange={(event) => {
-                      void handleRefundSave(event.target.value as 'none' | 'pending' | 'completed');
-                    }}
-                    disabled={updatingRefund}
-                    className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-black disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {REFUND_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </AdminCard>
       </div>
     </div>

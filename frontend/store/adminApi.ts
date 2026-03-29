@@ -343,43 +343,6 @@ export const adminApi = apiSlice.injectEndpoints({
       providesTags: (_result, _error, id) => [{ type: 'AdminOrder', id }],
     }),
 
-    updateAdminOrderStatus: builder.mutation<ApiResponse<AdminOrderSummary>, { id: string; status: AdminOrderSummary['status'] }>({
-      query: ({ id, status }) => ({
-        url: `/admin/orders/${id}/status`,
-        method: 'PATCH',
-        body: { status },
-      }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: 'AdminOrder', id: arg.id },
-        { type: 'AdminOrder', id: 'LIST' },
-        'AdminDashboard',
-      ],
-    }),
-
-    updateAdminOrderReturn: builder.mutation<ApiResponse<AdminOrderSummary>, { id: string; returnStatus: 'none' | 'requested' | 'approved' | 'rejected' }>({
-      query: ({ id, returnStatus }) => ({
-        url: `/admin/orders/${id}/return`,
-        method: 'PATCH',
-        body: { returnStatus },
-      }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: 'AdminOrder', id: arg.id },
-        { type: 'AdminOrder', id: 'LIST' },
-      ],
-    }),
-
-    updateAdminOrderRefund: builder.mutation<ApiResponse<AdminOrderSummary>, { id: string; refundStatus: 'none' | 'pending' | 'completed' }>({
-      query: ({ id, refundStatus }) => ({
-        url: `/admin/orders/${id}/refund`,
-        method: 'PATCH',
-        body: { refundStatus },
-      }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: 'AdminOrder', id: arg.id },
-        { type: 'AdminOrder', id: 'LIST' },
-      ],
-    }),
-
     getAdminPayments: builder.query<ApiResponse<AdminPaymentsResponse>, AdminPaymentQuery | undefined>({
       query: (query) => ({
         url: '/admin/payments',
@@ -432,9 +395,6 @@ export const {
   useFlagAdminProductMutation,
   useGetAdminOrdersQuery,
   useGetAdminOrderByIdQuery,
-  useUpdateAdminOrderStatusMutation,
-  useUpdateAdminOrderReturnMutation,
-  useUpdateAdminOrderRefundMutation,
   useGetAdminPaymentsQuery,
   useGetAdminPaymentByIdQuery,
   useGetAdminRefundLogsQuery,

@@ -242,7 +242,7 @@ const LoginForm = () => {
                     </>
                   ) : (
                     <>
-                      <span>Enter Boutique</span>
+                      <span>Sign In</span>
                       <IoChevronForward className="text-xl group-hover:translate-x-2 transition-transform duration-500" />
                     </>
                   )}

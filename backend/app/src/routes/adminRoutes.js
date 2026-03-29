@@ -5,7 +5,7 @@ const { adminLogin } = require('../controllers/adminAuthController');
 const { getDashboardStats } = require('../controllers/adminDashboardController');
 const { getAllUsers, getUserById, updateUserStatus } = require('../controllers/adminUserController');
 const { getAllProducts, approveProduct, rejectProduct, flagProduct } = require('../controllers/adminProductController');
-const { getAllOrders, getOrderById, updateOrderStatus, updateOrderReturn, updateOrderRefund } = require('../controllers/adminOrderController');
+const { getAllOrders, getOrderById } = require('../controllers/adminOrderController');
 const { getAllPayments, getSinglePayment, getRefundLogs } = require('../controllers/adminPaymentController');
 const { getPlatformAnalytics } = require('../controllers/adminAnalyticsController');
 
@@ -31,12 +31,9 @@ router.patch('/products/:id/approve', approveProduct);
 router.patch('/products/:id/reject', rejectProduct);
 router.patch('/products/:id/flag', flagProduct);
 
-// Order Management
+// Order Management (read-only for admins)
 router.get('/orders', getAllOrders);
 router.get('/orders/:id', getOrderById);
-router.patch('/orders/:id/status', updateOrderStatus);
-router.patch('/orders/:id/return', updateOrderReturn);
-router.patch('/orders/:id/refund', updateOrderRefund);
 
 // Payments & Refunds
 router.get('/payments', getAllPayments);

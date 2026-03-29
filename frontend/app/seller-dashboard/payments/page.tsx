@@ -58,7 +58,12 @@ const PaymentsReceivedPage = () => {
             <SellerLoader />
           </div>
         ) : isError ? (
-          <SellerErrorState onRetry={refetch} />
+          <SellerErrorState
+            message="Unable to load pending payment verifications."
+            onRetry={() => {
+              void refetch();
+            }}
+          />
         ) : pendingPayments.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-[3rem] border border-dashed border-zinc-200 bg-white/50 p-20 text-center backdrop-blur-xl">
              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-zinc-50 text-zinc-300">

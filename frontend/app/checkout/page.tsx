@@ -15,7 +15,9 @@ import {
   useAddBuyerAddressMutation,
   useUploadPaymentProofMutation,
   useCreatePaymentIntentMutation,
-  type BuyerAddress
+  type BuyerAddress,
+  type BuyerCartItem,
+  type BuyerProduct
 } from '@/store/buyerApi';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -122,6 +124,47 @@ const CheckoutPage = () => {
     [cartResponse?.data?.cart?.items]
   );
 
+  const cartItems = useMemo(() => cartResponse?.data?.cart?.items ?? [], [cartResponse?.data?.cart?.items]);
+
+  const resolveSellerIdFromProduct = (product: BuyerCartItem['product']): string | null => {
+    if (!product || typeof product !== 'object') {
+      return null;
+    }
+
+    const sellerRef = product.sellerId;
+    if (typeof sellerRef === 'string' && sellerRef.trim()) {
+      return sellerRef;
+    }
+
+    if (sellerRef && typeof sellerRef === 'object' && typeof sellerRef._id === 'string' && sellerRef._id.trim()) {
+      return sellerRef._id;
+    }
+
+    return null;
+  };
+
+  const resolveProductFromCartItem = (item: BuyerCartItem): BuyerProduct | null => {
+    if (!item.product || typeof item.product !== 'object') {
+      return null;
+    }
+
+    return item.product;
+  };
+
+  const uniqueSellerIds = useMemo(
+    () => Array.from(new Set(cartItems.map((item) => resolveSellerIdFromProduct(item.product)).filter((id): id is string => Boolean(id)))),
+    [cartItems]
+  );
+
+  const findSellerProduct = (sellerId: string): BuyerProduct | null => {
+    const matchedItem = cartItems.find((item) => resolveSellerIdFromProduct(item.product) === sellerId);
+    if (!matchedItem) {
+      return null;
+    }
+
+    return resolveProductFromCartItem(matchedItem);
+  };
+
   const estimatedShipping = subtotal > 120 ? 0 : 9.99;
   const tax = subtotal * 0.05;
   const grandTotal = subtotal + estimatedShipping + tax;
@@ -204,9 +247,8 @@ const CheckoutPage = () => {
 
   const handleProofSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const uniqueSellers = Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id)));
-    if (uniqueSellers.some(sellerId => !paymentProofFiles[sellerId as string])) {
+
+    if (uniqueSellerIds.some((sellerId) => !paymentProofFiles[sellerId])) {
       toast.error('All transaction screenshots are required.');
       return;
     }
@@ -215,10 +257,10 @@ const CheckoutPage = () => {
       const proofUrls: Record<string, string> = {};
       
       // Upload proofs in parallel
-      const uploadPromises = uniqueSellers.map(async (sellerId) => {
-         const file = paymentProofFiles[sellerId as string];
+      const uploadPromises = uniqueSellerIds.map(async (sellerId) => {
+        const file = paymentProofFiles[sellerId];
          const uploadRes = await uploadProof(file).unwrap();
-         proofUrls[sellerId as string] = uploadRes.data;
+        proofUrls[sellerId] = uploadRes.data;
       });
       
       await Promise.all(uploadPromises);
@@ -683,11 +725,18 @@ const CheckoutPage = () => {
                               </h4>
                               <div className="grid gap-4 sm:grid-cols-2">
                                  {/* Group by Unique Sellers */}
-                                 {Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id))).map((sellerId, idx) => {
-                                    const sellerProduct = cartResponse?.data?.cart?.items.find(item => item.product?.sellerId === sellerId)?.product;
+                                {uniqueSellerIds.map((sellerId, idx) => {
+                                    const sellerProduct = findSellerProduct(sellerId);
                                     if (!sellerProduct) return null;
                                     
-                                    const sellerObj = typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId as any;
+                                    const sellerObj = (typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId) as {
+                                      _id?: string;
+                                      storeName?: string;
+                                      bankDetails?: string;
+                                      bankAccountHolderName?: string;
+                                      bankName?: string;
+                                      bankIBAN?: string;
+                                    } | undefined;
                                     const storeLabel = sellerObj?.storeName || sellerObj?._id?.toString().slice(-6).toUpperCase() || 'HUB';
                                     
                                     // Parse legacy vs new bank fields
@@ -748,7 +797,7 @@ const CheckoutPage = () => {
                                           </div>
                                        </div>
                                     )
-                                 })}
+                                })}
                               </div>
                            </div>
 
@@ -760,13 +809,16 @@ const CheckoutPage = () => {
                               </h4>
                               
                               <div className="grid gap-4 sm:grid-cols-2">
-                                 {Array.from(new Set(cartResponse?.data?.cart?.items.map(item => item.product?.sellerId).filter(id => !!id))).map((sellerId, idx) => {
-                                    const sellerProduct = cartResponse?.data?.cart?.items.find(item => item.product?.sellerId === sellerId)?.product;
+                                {uniqueSellerIds.map((sellerId, idx) => {
+                                  const sellerProduct = findSellerProduct(sellerId);
                                     if (!sellerProduct) return null;
                                     
-                                    const sellerObj = typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId as any;
+                                  const sellerObj = (typeof sellerProduct.sellerId === 'string' ? { _id: sellerProduct.sellerId } : sellerProduct.sellerId) as {
+                                    _id?: string;
+                                    storeName?: string;
+                                  } | undefined;
                                     const storeLabel = sellerObj?.storeName || sellerObj?._id?.toString().slice(-6).toUpperCase() || 'HUB';
-                                    const file = paymentProofFiles[sellerId as string];
+                                  const file = paymentProofFiles[sellerId];
 
                                     return (
                                       <div key={idx} className="relative group overflow-hidden rounded-2xl">
@@ -776,7 +828,7 @@ const CheckoutPage = () => {
                                            onChange={(e) => {
                                              const selected = e.target.files?.[0] || null;
                                              if (selected) {
-                                                setPaymentProofFiles(prev => ({ ...prev, [sellerId as string]: selected }));
+                                              setPaymentProofFiles(prev => ({ ...prev, [sellerId]: selected }));
                                              }
                                            }}
                                            className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
@@ -822,7 +874,7 @@ const CheckoutPage = () => {
                              disabled={
                                uploadingProof || 
                                placingOrder || 
-                               Array.from(new Set(cartResponse?.data?.cart?.items.map(i => i.product?.sellerId).filter(id => !!id))).length !== Object.keys(paymentProofFiles).length
+                               uniqueSellerIds.length !== Object.keys(paymentProofFiles).length
                              }
                              className="flex flex-[2] relative items-center justify-center overflow-hidden rounded-xl bg-black py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:bg-zinc-800 disabled:opacity-50 disabled:hover:bg-black group"
                            >

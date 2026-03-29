@@ -40,8 +40,7 @@ After Vercel gives you your frontend URL:
 1. In Render backend env vars, set both:
    - `FRONTEND_URL=https://<your-frontend>.vercel.app`
    - `CORS_ORIGIN=https://<your-frontend>.vercel.app`
-2. Redeploy backend.
-
+2. 
 ## 6) Optional Custom Domain
 
 1. Add custom domain in Vercel Project Settings -> Domains.

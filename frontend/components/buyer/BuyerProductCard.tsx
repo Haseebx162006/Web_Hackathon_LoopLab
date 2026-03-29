@@ -115,15 +115,21 @@ const BuyerProductCard = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <Link
+            href={`/products/${product._id}`}
+            className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white py-3 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:border-black hover:bg-zinc-50"
+          >
+            Details
+          </Link>
           <button
             type="button"
             onClick={() => onAddToCart?.(product)}
             disabled={stock <= 0}
-            className="group/btn relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-black py-3 text-[11px] font-black uppercase tracking-[0.25em] text-white transition-all hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            className="flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-[9px] font-black uppercase tracking-widest text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
           >
-            <span className="relative z-10">Buy Now</span>
-            <div className="absolute inset-0 z-0 translate-y-full bg-linear-to-r from-[#FF70A1] via-[#D4A5FF] to-[#FF70A1] opacity-0 transition-all duration-300 group-hover/btn:translate-y-0 group-hover/btn:opacity-100" />
+            <IoCartOutline className="text-sm" />
+            Add to Bag
           </button>
         </div>
       </div>

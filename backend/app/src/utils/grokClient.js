@@ -57,18 +57,23 @@ const parsePricingResponse = (text) => {
     recommendedPrice === undefined ||
     minPrice === undefined ||
     maxPrice === undefined ||
-    recommendedPrice < 0 ||
-    minPrice < 0 ||
-    maxPrice < 0
+    recommendedPrice <= 0 ||
+    minPrice <= 0 ||
+    maxPrice <= 0 ||
+    maxPrice <= minPrice ||
+    recommendedPrice < minPrice ||
+    recommendedPrice > maxPrice
   ) {
     return null;
   }
+
+  const confidence = toNumberOrUndefined(parsed.confidence ?? parsed.confidenceScore);
 
   return {
     recommendedPrice,
     minPrice,
     maxPrice,
-    confidence: toNumberOrUndefined(parsed.confidence ?? parsed.confidenceScore),
+    confidence: confidence !== undefined && confidence > 0 ? confidence : undefined,
     reason: typeof parsed.reason === 'string' ? parsed.reason.trim() : '',
   };
 };
@@ -88,7 +93,7 @@ const getPricingAIRecommendation = async (payload) => {
           {
             role: 'system',
             content:
-              'You are a dynamic pricing analyst for a marketplace. Return JSON only with keys: recommendedPrice, minPrice, maxPrice, confidence, reason. Keep reason under 25 words.',
+              'You are a dynamic pricing analyst for a marketplace. Return JSON only with keys: recommendedPrice, minPrice, maxPrice, confidence, reason. All prices must be positive numbers. Ensure minPrice < recommendedPrice < maxPrice. confidence must be between 0 and 1. Keep reason under 25 words.',
           },
           {
             role: 'user',

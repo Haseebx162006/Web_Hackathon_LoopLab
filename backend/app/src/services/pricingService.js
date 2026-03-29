@@ -14,6 +14,22 @@ const REVENUE_RECOGNIZED_STATUSES = ['processing', 'confirmed', 'packed', 'shipp
 
 const marketStatsCache = new Map();
 
+const hasUsableSuggestion = (suggestion) => {
+  if (!suggestion) {
+    return false;
+  }
+
+  return (
+    Number.isFinite(Number(suggestion.recommendedPrice)) &&
+    Number.isFinite(Number(suggestion.minPrice)) &&
+    Number.isFinite(Number(suggestion.maxPrice)) &&
+    Number(suggestion.recommendedPrice) > 0 &&
+    Number(suggestion.minPrice) > 0 &&
+    Number(suggestion.maxPrice) > 0 &&
+    Number(suggestion.maxPrice) > Number(suggestion.minPrice)
+  );
+};
+
 const buildCacheKey = (category) => String(category || '').trim().toLowerCase();
 
 const isCacheEntryFresh = (cacheEntry) => {
@@ -286,6 +302,19 @@ const getDynamicPriceSuggestion = async (productInput) => {
       fallbackPrice: fallbackSuggestion.recommendedPrice,
     }
   );
+
+  if (!hasUsableSuggestion(normalizedAiSuggestion)) {
+    const normalizedFallback = normalizePriceSuggestion(fallbackSuggestion, {
+      inputPrice: productInput.inputPrice,
+      costPrice: productInput.costPrice,
+      fallbackPrice: fallbackSuggestion.recommendedPrice,
+    });
+
+    return {
+      ...normalizedFallback,
+      source: 'fallback',
+    };
+  }
 
   return {
     ...normalizedAiSuggestion,

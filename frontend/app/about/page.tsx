@@ -9,12 +9,12 @@ const AboutPage = () => {
   const developers = [
     {
       name: 'Visionary Architect',
-      role: 'Lead Full Stack Developer',
+      role: 'Full Stack Developer',
       image: '/assets/about/developer-1.jpeg',
     },
     {
       name: 'Creative Engineer',
-      role: 'UI/UX Specialist',
+      role: 'Full Stack Developer',
       image: '/assets/about/developer-1.jpeg',
     },
   ];

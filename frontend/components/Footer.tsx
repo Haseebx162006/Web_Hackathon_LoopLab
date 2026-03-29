@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 
 const Footer = () => {
@@ -9,15 +10,30 @@ const Footer = () => {
   const footerLinks = [
     {
       title: "Explore",
-      links: ["Collections", "Categories", "Featured", "Sale"],
+      links: [
+        { label: "Collections", path: "/collections" },
+        { label: "Categories", path: "/categories" },
+        { label: "Featured", path: "/products?sort=featured" },
+        { label: "Sale", path: "/products?sort=sale" },
+      ],
     },
     {
       title: "Company",
-      links: ["Our Story", "Sustainability", "Careers", "Journal"],
+      links: [
+        { label: "Our Story", path: "/about" },
+        { label: "Sustainability", path: "/sustainability" },
+        { label: "Careers", path: "/careers" },
+        { label: "Journal", path: "/journal" },
+      ],
     },
     {
       title: "Support",
-      links: ["Shipping", "Returns", "Size Guide", "FAQs"],
+      links: [
+        { label: "Shipping", path: "/shipping" },
+        { label: "Returns", path: "/returns" },
+        { label: "Size Guide", path: "/size-guide" },
+        { label: "FAQs", path: "/faq" },
+      ],
     },
   ];
 
@@ -63,14 +79,18 @@ const Footer = () => {
                 <h4 className="text-[10px] font-black uppercase tracking-[0.6em] text-gray-900">{col.title}</h4>
                 <ul className="space-y-4">
                     {col.links.map((link) => (
-                        <li key={link}>
-                            <motion.a
-                                href="#"
-                                whileHover={{ x: 5 }}
-                                className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-all"
+                        <li key={link.label}>
+                            <Link
+                                href={link.path}
+                                className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest transition-all block"
                             >
-                                {link}
-                            </motion.a>
+                                <motion.span
+                                    whileHover={{ x: 5 }}
+                                    className="inline-block"
+                                >
+                                    {link.label}
+                                </motion.span>
+                            </Link>
                         </li>
                     ))}
                 </ul>
@@ -85,10 +105,18 @@ const Footer = () => {
            </div>
            
            <div className="flex items-center gap-8">
-                {['Terms', 'Privacy', 'Legal'].map(item => (
-                    <a key={item} href="#" className="text-[10px] font-bold text-gray-300 hover:text-gray-900 uppercase tracking-widest transition-all">
-                        {item}
-                    </a>
+                {[
+                    { label: 'Terms', path: '/terms' },
+                    { label: 'Privacy', path: '/privacy' },
+                    { label: 'Legal', path: '/legal' }
+                ].map(item => (
+                    <Link 
+                        key={item.label} 
+                        href={item.path} 
+                        className="text-[10px] font-bold text-gray-300 hover:text-gray-900 uppercase tracking-widest transition-all"
+                    >
+                        {item.label}
+                    </Link>
                 ))}
            </div>
 

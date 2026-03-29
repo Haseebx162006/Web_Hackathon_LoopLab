@@ -129,15 +129,15 @@ const DashboardHomePage = () => {
         <SellerCard className="2xl:col-span-2">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-black tracking-tight text-black">Sales Overview</h2>
-              <p className="text-sm text-zinc-500">Weekly or monthly revenue trend from live orders.</p>
+              <h2 className="text-xl font-light tracking-tight text-black">Sales Overview</h2>
+              <p className="text-sm font-light text-zinc-500">Weekly or monthly revenue trend from live orders.</p>
             </div>
-            <div className="inline-flex rounded-2xl bg-zinc-100 p-1">
+            <div className="inline-flex rounded-2xl bg-zinc-100/50 p-1 backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => setChartRange('weekly')}
-                className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
-                  chartRange === 'weekly' ? 'bg-black text-white' : 'text-zinc-500'
+                className={`rounded-xl px-4 py-2 text-xs font-light uppercase tracking-widest transition-all duration-300 ${
+                  chartRange === 'weekly' ? 'bg-black text-white shadow-lg' : 'text-zinc-500 hover:text-black'
                 }`}
               >
                 Weekly
@@ -145,8 +145,8 @@ const DashboardHomePage = () => {
               <button
                 type="button"
                 onClick={() => setChartRange('monthly')}
-                className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider transition ${
-                  chartRange === 'monthly' ? 'bg-black text-white' : 'text-zinc-500'
+                className={`rounded-xl px-4 py-2 text-xs font-light uppercase tracking-widest transition-all duration-300 ${
+                  chartRange === 'monthly' ? 'bg-black text-white shadow-lg' : 'text-zinc-500 hover:text-black'
                 }`}
               >
                 Monthly
@@ -157,20 +157,22 @@ const DashboardHomePage = () => {
           {chartBusy ? <SellerLoader compact label="Loading sales chart..." /> : null}
 
           {!chartBusy && chartData.length === 0 ? (
-            <p className="rounded-2xl border border-zinc-100 bg-white/70 p-6 text-sm font-semibold text-zinc-500">
+            <p className="rounded-2xl border border-zinc-100 bg-white/40 backdrop-blur-sm p-6 text-sm font-light text-zinc-500">
               No sales data available for the selected range.
             </p>
           ) : null}
 
           {!chartBusy && chartData.length > 0 ? (
-            <div className="h-[320px]">
+            <div className="h-[320px] animate-fade-in-up">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
-                  <XAxis dataKey="label" stroke="#71717a" fontSize={12} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} axisLine={false} tickLine={false} dy={10} />
                   <YAxis
-                    stroke="#71717a"
-                    fontSize={12}
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    axisLine={false}
+                    tickLine={false}
                     tickFormatter={(value) => {
                       const numeric = Number(value);
                       if (numeric >= 1000) {
@@ -180,16 +182,18 @@ const DashboardHomePage = () => {
                     }}
                   />
                   <Tooltip
-                    formatter={(value) => formatCurrency(Number(value ?? 0))}
-                    labelStyle={{ color: '#111827', fontWeight: 700 }}
+                    contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '1rem', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                    itemStyle={{ color: '#000', fontSize: '12px', fontWeight: 300 }}
+                    labelStyle={{ color: '#64748b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}
+                    formatter={(value) => [formatCurrency(Number(value ?? 0)), 'Revenue']}
                   />
                   <Line
                     type="monotone"
                     dataKey="sales"
-                    stroke="#111827"
-                    strokeWidth={3}
-                    dot={{ r: 4, fill: '#111827' }}
-                    activeDot={{ r: 6 }}
+                    stroke="#000"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: '#000', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, fill: '#000', strokeWidth: 2, stroke: '#fff' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -209,24 +213,28 @@ const DashboardHomePage = () => {
         </SellerCard>
 
         <SellerCard>
-          <h2 className="text-xl font-black tracking-tight text-black">Low Stock Alerts</h2>
-          <p className="mt-1 text-sm text-zinc-500">Products currently below configured inventory threshold.</p>
+          <h2 className="text-xl font-light tracking-tight text-black">Low Stock Alerts</h2>
+          <p className="mt-1 text-sm font-light text-zinc-500">Products currently below configured inventory threshold.</p>
 
           {isLoading ? <div className="mt-5"><SellerLoader compact label="Checking stock levels..." /></div> : null}
 
           {!isLoading && (dashboard?.lowStock.length ?? 0) === 0 ? (
-            <p className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-              Great job. No low-stock products right now.
-            </p>
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/30 backdrop-blur-sm p-5 text-center">
+              <p className="text-sm font-light text-emerald-700">
+                Great job. No low-stock products right now.
+              </p>
+            </div>
           ) : null}
 
           {!isLoading && (dashboard?.lowStock.length ?? 0) > 0 ? (
-            <ul className="mt-5 space-y-3">
+            <ul className="mt-5 space-y-4">
               {dashboard?.lowStock.map((item) => (
-                <li key={item._id} className="rounded-2xl border border-rose-100 bg-rose-50/80 p-4">
-                  <p className="text-sm font-black text-zinc-800">{item.productName}</p>
-                  <p className="mt-1 text-xs font-semibold text-zinc-500">Stock left: {item.stockQuantity}</p>
-                  <p className="mt-1 text-xs font-semibold text-zinc-500">Price: {formatCurrency(item.price)}</p>
+                <li key={item._id} className="group rounded-2xl border border-rose-100 bg-rose-50/20 p-4 transition-all hover:bg-rose-50/40">
+                  <p className="text-sm font-light text-zinc-800">{item.productName}</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-[11px] font-light text-zinc-400 uppercase tracking-wider">Stock: {item.stockQuantity}</p>
+                    <p className="text-[11px] font-light text-rose-500 uppercase tracking-wider">{formatCurrency(item.price)}</p>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -235,12 +243,12 @@ const DashboardHomePage = () => {
       </div>
 
       <SellerCard>
-        <div className="flex flex-wrap items-center gap-4 text-sm font-semibold text-zinc-600">
-          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-zinc-500">
-            Data freshness
+        <div className="flex flex-wrap items-center gap-6 text-sm font-light text-zinc-400">
+          <span className="rounded-full bg-zinc-100/50 px-4 py-1.5 text-[10px] font-light uppercase tracking-[0.2em] text-zinc-500 backdrop-blur-sm border border-zinc-100/10">
+            Realtime Status
           </span>
-          <span>Dashboard data refreshes automatically after CRUD actions and order updates.</span>
-          <span className="text-zinc-400">Last render: {formatDate(new Date())}</span>
+          <span className="tracking-wide">Dashboard data synchronizes automatically with store activity.</span>
+          <span className="ml-auto text-[11px] uppercase tracking-widest text-zinc-300">Sync: {formatDate(new Date())}</span>
         </div>
       </SellerCard>
     </div>

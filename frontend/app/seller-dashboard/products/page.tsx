@@ -283,8 +283,8 @@ const ProductManagementPage = () => {
       <SellerCard>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-end">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-zinc-400">Bulk Product Upload</p>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="text-xs font-light uppercase tracking-[0.22em] text-zinc-400">Bulk Product Upload</p>
+            <p className="mt-1 text-sm font-light text-zinc-500">
               Upload an Excel file with product rows. Supported columns include productName, description,
               category, price, discountPrice, skuCode, stockQuantity, variants, and productImages.
             </p>
@@ -297,7 +297,7 @@ const ProductManagementPage = () => {
                 const file = event.target.files?.[0] ?? null;
                 setBulkFile(file);
               }}
-              className="block w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-500"
+              className="block w-full rounded-xl border border-zinc-100 bg-white/50 backdrop-blur-sm px-4 py-2.5 text-xs text-zinc-500 transition-all focus:ring-1 focus:ring-black/5"
             />
             <SellerButton label="Upload File" loading={bulkUploading} onClick={handleBulkUpload} />
           </div>
@@ -353,9 +353,9 @@ const ProductManagementPage = () => {
         <SellerLoader label="Loading products..." />
       ) : (
         <SellerCard>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-black">Product List</h2>
-            <p className="text-xs font-semibold text-zinc-500">
+          <div className="mb-4 flex items-center justify-between gap-3 animate-fade-in-up">
+            <h2 className="text-xl font-light tracking-tight text-black">Product List</h2>
+            <p className="text-xs font-light uppercase tracking-widest text-zinc-400">
               {products.length} item(s) {isFetching ? 'updating...' : 'available'}
             </p>
           </div>
@@ -368,22 +368,22 @@ const ProductManagementPage = () => {
             <SellerTable
               headers={['Product', 'Category', 'Price', 'Stock', 'SKU', 'Status', 'Updated', 'Actions']}
             >
-              {products.map((product) => (
-                <tr key={product._id} className="align-top">
-                  <td className="px-4 py-4">
-                    <p className="text-sm font-black text-zinc-900">{product.productName}</p>
-                    <p className="mt-1 max-w-xs text-xs text-zinc-500">{product.description}</p>
+               {products.map((product) => (
+                <tr key={product._id} className="align-top group hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-4 py-5">
+                    <p className="text-sm font-light text-zinc-900">{product.productName}</p>
+                    <p className="mt-1 max-w-xs text-xs font-light text-zinc-400 leading-relaxed">{product.description}</p>
                   </td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">{product.category}</td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">
-                    <div>{formatCurrency(product.price)}</div>
+                  <td className="px-4 py-5 text-sm font-light text-zinc-600">{product.category}</td>
+                  <td className="px-4 py-5 text-sm font-light text-zinc-700">
+                    <div className="font-light">{formatCurrency(product.price)}</div>
                     {product.discountPrice != null ? (
-                      <div className="text-xs text-emerald-600">Discount: {formatCurrency(product.discountPrice)}</div>
+                      <div className="mt-1 text-[11px] font-light text-rose-400">-{formatCurrency(product.discountPrice)}</div>
                     ) : null}
                   </td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">{product.stockQuantity}</td>
-                  <td className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-600">{product.skuCode}</td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5 text-sm font-light text-zinc-600">{product.stockQuantity}</td>
+                  <td className="px-4 py-5 text-[11px] font-light uppercase tracking-widest text-zinc-400">{product.skuCode}</td>
+                  <td className="px-4 py-5">
                     <SellerBadge
                       label={product.status}
                       tone={
@@ -395,19 +395,19 @@ const ProductManagementPage = () => {
                       }
                     />
                   </td>
-                  <td className="px-4 py-4 text-xs font-semibold text-zinc-500">{formatDateTime(product.updatedAt)}</td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5 text-[10px] font-light uppercase tracking-widest text-zinc-400">{formatDateTime(product.updatedAt)}</td>
+                  <td className="px-4 py-5">
                     <div className="flex flex-wrap gap-2">
                       <SellerButton
                         label="Edit"
                         tone="secondary"
-                        className="px-3 py-2"
+                        className="px-3 py-2 text-[10px]"
                         onClick={() => handleOpenEdit(product)}
                       />
                       <SellerButton
                         label="Delete"
                         tone="danger"
-                        className="px-3 py-2"
+                        className="px-3 py-2 text-[10px]"
                         loading={deleting}
                         onClick={() => {
                           void handleDelete(product._id);

@@ -122,21 +122,21 @@ const InventoryManagementPage = () => {
         description="Monitor stock levels, identify low-stock products, and update inventory individually or in bulk."
       />
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <SellerCard>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Current Threshold</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-black">{inventoryResponse?.threshold ?? threshold}</p>
-          <p className="mt-1 text-sm text-zinc-500">Products below this value are flagged low stock.</p>
+          <p className="text-[10px] font-light uppercase tracking-[0.25em] text-zinc-400">Current Threshold</p>
+          <p className="mt-2 text-3xl font-light tracking-tight text-black">{inventoryResponse?.threshold ?? threshold}</p>
+          <p className="mt-1 text-sm font-light text-zinc-500">Products below this value are flagged low stock.</p>
         </SellerCard>
         <SellerCard>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Products Tracked</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-black">{inventory.length}</p>
-          <p className="mt-1 text-sm text-zinc-500">Live from seller inventory endpoint.</p>
+          <p className="text-[10px] font-light uppercase tracking-[0.25em] text-zinc-400">Products Tracked</p>
+          <p className="mt-2 text-3xl font-light tracking-tight text-black">{inventory.length}</p>
+          <p className="mt-1 text-sm font-light text-zinc-500">Live from seller inventory endpoint.</p>
         </SellerCard>
         <SellerCard>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Low Stock Alerts</p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-rose-600">{lowStockCount}</p>
-          <p className="mt-1 text-sm text-zinc-500">Requires replenishment.</p>
+          <p className="text-[10px] font-light uppercase tracking-[0.25em] text-zinc-400">Low Stock Alerts</p>
+          <p className="mt-2 text-3xl font-light tracking-tight text-rose-500">{lowStockCount}</p>
+          <p className="mt-1 text-sm font-light text-zinc-500">Requires replenishment.</p>
         </SellerCard>
       </div>
 
@@ -162,12 +162,12 @@ const InventoryManagementPage = () => {
       </SellerCard>
 
       <SellerCard>
-        <h2 className="text-xl font-black tracking-tight text-black">Bulk Stock Update</h2>
-        <p className="mt-1 text-sm text-zinc-500">
-          Enter one item per line using this format: <strong>SKU123,45</strong>
+        <h2 className="text-xl font-light tracking-tight text-black">Bulk Stock Update</h2>
+        <p className="mt-1 text-sm font-light text-zinc-500">
+          Enter one item per line using this format: <code className="bg-zinc-100 px-1.5 py-0.5 rounded text-zinc-800">SKU123,45</code>
         </p>
 
-        <div className="mt-4 space-y-4">
+        <div className="mt-6 space-y-4">
           <SellerTextarea
             label="Bulk Update Payload"
             rows={7}
@@ -194,9 +194,9 @@ const InventoryManagementPage = () => {
         <SellerLoader label="Loading inventory..." />
       ) : (
         <SellerCard>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-black">Stock Levels</h2>
-            <p className="text-xs font-semibold text-zinc-500">
+          <div className="mb-4 flex items-center justify-between gap-3 animate-fade-in-up">
+            <h2 className="text-xl font-light tracking-tight text-black">Stock Levels</h2>
+            <p className="text-xs font-light uppercase tracking-widest text-zinc-400">
               {inventory.length} item(s) {isFetching ? 'refreshing...' : 'loaded'}
             </p>
           </div>
@@ -208,31 +208,31 @@ const InventoryManagementPage = () => {
           ) : (
             <SellerTable headers={['Product', 'SKU', 'Stock', 'Status', 'Update Quantity', 'Action']}>
               {inventory.map((item) => (
-                <tr key={item.skuCode}>
-                  <td className="px-4 py-4 text-sm font-black text-zinc-800">{item.productName}</td>
-                  <td className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-zinc-600">{item.skuCode}</td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">{item.stockQuantity}</td>
-                  <td className="px-4 py-4">
+                <tr key={item.skuCode} className="group hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-4 py-5 text-sm font-light text-zinc-800">{item.productName}</td>
+                  <td className="px-4 py-5 text-[11px] font-light uppercase tracking-widest text-zinc-400">{item.skuCode}</td>
+                  <td className="px-4 py-5 text-sm font-light text-zinc-600 font-mono">{item.stockQuantity}</td>
+                  <td className="px-4 py-5">
                     <SellerBadge
                       label={item.lowStock ? 'Low stock' : 'Healthy'}
                       tone={item.lowStock ? 'danger' : 'success'}
                     />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5 font-light">
                     <input
                       type="number"
                       min="0"
                       step="1"
-                      className="w-28 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold"
+                      className="w-28 rounded-xl border border-zinc-100 bg-white/50 backdrop-blur-sm px-4 py-2.5 text-xs font-light transition-all focus:ring-1 focus:ring-black/5"
                       value={getDraftValue(item.skuCode, item.stockQuantity)}
                       onChange={(event) => setDraftValue(item.skuCode, event.target.value)}
                     />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <SellerButton
                       label="Save"
                       tone="secondary"
-                      className="px-4 py-2"
+                      className="px-4 py-2 text-[10px]"
                       loading={updatingStock}
                       onClick={() => {
                         void handleSingleUpdate(item.skuCode, item.stockQuantity);

@@ -146,8 +146,8 @@ const SettingsPage = () => {
       {profile ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <SellerCard className="xl:col-span-2">
-            <h2 className="text-xl font-black tracking-tight text-black">Store Profile</h2>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h2 className="text-xl font-light tracking-tight text-black">Store Profile</h2>
+            <p className="mt-1 text-sm font-light text-zinc-500">
               Keep your storefront details accurate for better buyer trust and communication.
             </p>
 
@@ -229,7 +229,7 @@ const SettingsPage = () => {
               />
 
               <label className="block space-y-2">
-                <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
+                <span className="block text-[10px] font-light uppercase tracking-[0.25em] text-zinc-400">
                   Store Logo
                 </span>
                 <input
@@ -239,7 +239,7 @@ const SettingsPage = () => {
                     const file = event.target.files?.[0] ?? null;
                     setLogoFile(file);
                   }}
-                  className="block w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm"
+                  className="block w-full rounded-2xl border border-zinc-100 bg-white/50 backdrop-blur-sm px-4 py-3 text-sm font-light transition-all focus:ring-1 focus:ring-black/5"
                 />
                 <p className="text-xs text-zinc-500">
                   {logoFile ? `Selected: ${logoFile.name}` : 'Upload a new logo to replace current branding.'}
@@ -260,8 +260,8 @@ const SettingsPage = () => {
 
           <div className="space-y-6">
             <SellerCard>
-              <h2 className="text-xl font-black tracking-tight text-black">Current Branding</h2>
-              <div className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
+              <h2 className="text-xl font-light tracking-tight text-black">Current Branding</h2>
+              <div className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 p-6 backdrop-blur-sm">
                 {profile.storeLogo ? (
                   <img
                     src={profile.storeLogo}
@@ -273,14 +273,14 @@ const SettingsPage = () => {
                     {profile.storeName?.charAt(0) || 'S'}
                   </div>
                 )}
-                <p className="mt-3 text-sm font-black text-zinc-800">{profile.storeName || 'Seller Store'}</p>
-                <p className="mt-1 text-xs text-zinc-500">{profile.email}</p>
+                <p className="mt-4 text-sm font-light text-zinc-900">{profile.storeName || 'Seller Store'}</p>
+                <p className="mt-1 text-xs font-light text-zinc-400">{profile.email}</p>
               </div>
             </SellerCard>
 
             <SellerCard>
-              <h2 className="text-xl font-black tracking-tight text-black">Change Password</h2>
-              <p className="mt-1 text-sm text-zinc-500">Use a strong password and keep it private.</p>
+              <h2 className="text-xl font-light tracking-tight text-black">Change Password</h2>
+              <p className="mt-1 text-sm font-light text-zinc-500">Use a strong password and keep it private.</p>
 
               <form className="mt-4 space-y-4" onSubmit={handlePasswordSubmit}>
                 <SellerInput

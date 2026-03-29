@@ -194,9 +194,9 @@ const CouponManagementPage = () => {
         <SellerLoader label="Loading coupons..." />
       ) : (
         <SellerCard>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-black">Coupon List</h2>
-            <p className="text-xs font-semibold text-zinc-500">
+          <div className="mb-4 flex items-center justify-between gap-3 animate-fade-in-up">
+            <h2 className="text-xl font-light tracking-tight text-black">Coupon List</h2>
+            <p className="text-xs font-light uppercase tracking-widest text-zinc-400">
               {coupons.length} coupon(s) {isFetching ? 'refreshing...' : 'available'}
             </p>
           </div>
@@ -210,35 +210,35 @@ const CouponManagementPage = () => {
               headers={['Code', 'Type', 'Value', 'Minimum Order', 'Date Range', 'State', 'Actions']}
             >
               {coupons.map((coupon) => (
-                <tr key={coupon._id}>
-                  <td className="px-4 py-4 text-sm font-black uppercase tracking-wider text-zinc-800">{coupon.code}</td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">{coupon.discountType}</td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">
+                <tr key={coupon._id} className="group hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-4 py-5 text-sm font-light uppercase tracking-wider text-zinc-800">{coupon.code}</td>
+                  <td className="px-4 py-5 text-sm font-light text-zinc-600 uppercase tracking-widest text-[10px]">{coupon.discountType}</td>
+                  <td className="px-4 py-5 text-sm font-light text-zinc-700">
                     {coupon.discountType === 'percentage'
                       ? `${coupon.discountValue}%`
                       : formatCurrency(coupon.discountValue)}
                   </td>
-                  <td className="px-4 py-4 text-sm font-semibold text-zinc-700">
+                  <td className="px-4 py-5 text-sm font-light text-zinc-700">
                     {formatCurrency(coupon.minOrderAmount)}
                   </td>
-                  <td className="px-4 py-4 text-xs font-semibold text-zinc-600">
+                  <td className="px-4 py-5 text-[10px] font-light uppercase tracking-widest text-zinc-400">
                     {formatDate(coupon.startDate)} - {formatDate(coupon.endDate)}
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <SellerBadge label={coupon.isActive ? 'Active' : 'Inactive'} tone={coupon.isActive ? 'success' : 'default'} />
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-4 py-5">
                     <div className="flex flex-wrap gap-2">
                       <SellerButton
                         label="Edit"
                         tone="secondary"
-                        className="px-3 py-2"
+                        className="px-3 py-2 text-[10px]"
                         onClick={() => openEdit(coupon)}
                       />
                       <SellerButton
                         label="Delete"
                         tone="danger"
-                        className="px-3 py-2"
+                        className="px-3 py-2 text-[10px]"
                         loading={deleting}
                         onClick={() => {
                           void handleDelete(coupon);
@@ -322,14 +322,14 @@ const CouponManagementPage = () => {
             />
           </div>
 
-          <label className="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+          <label className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-zinc-50/50 px-4 py-4 backdrop-blur-sm transition-all hover:bg-zinc-50/80">
             <input
               type="checkbox"
               checked={formState.isActive}
               onChange={(event) => setFormState((prev) => ({ ...prev, isActive: event.target.checked }))}
-              className="h-4 w-4 accent-black"
+              className="h-4 w-4 accent-black transition-transform active:scale-90"
             />
-            <span className="text-sm font-semibold text-zinc-700">Coupon is active</span>
+            <span className="text-sm font-light text-zinc-700">Promotion is currently active</span>
           </label>
 
           {formError ? <SellerErrorState message={formError} /> : null}

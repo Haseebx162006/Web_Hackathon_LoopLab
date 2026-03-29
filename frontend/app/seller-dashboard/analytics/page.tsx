@@ -150,8 +150,8 @@ const AnalyticsPage = () => {
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <SellerCard>
-            <h2 className="text-xl font-black tracking-tight text-black">Revenue Trend</h2>
-            <p className="mt-1 text-sm text-zinc-500">Total revenue in selected period.</p>
+            <h2 className="text-xl font-light tracking-tight text-black">Revenue Trend</h2>
+            <p className="mt-1 text-sm font-light text-zinc-500">Total revenue in selected period.</p>
 
             {chartData.length === 0 ? (
               <p className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-5 text-sm font-semibold text-zinc-500">
@@ -167,7 +167,7 @@ const AnalyticsPage = () => {
                         <stop offset="95%" stopColor="#111827" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f1f1" />
                     <XAxis dataKey="period" stroke="#71717a" fontSize={12} />
                     <YAxis
                       stroke="#71717a"
@@ -187,8 +187,8 @@ const AnalyticsPage = () => {
           </SellerCard>
 
           <SellerCard>
-            <h2 className="text-xl font-black tracking-tight text-black">Order Count Trend</h2>
-            <p className="mt-1 text-sm text-zinc-500">Order volume over the selected period.</p>
+            <h2 className="text-xl font-light tracking-tight text-black">Order Count Trend</h2>
+            <p className="mt-1 text-sm font-light text-zinc-500">Order volume over the selected period.</p>
 
             {chartData.length === 0 ? (
               <p className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-5 text-sm font-semibold text-zinc-500">
@@ -198,7 +198,7 @@ const AnalyticsPage = () => {
               <div className="mt-4 h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f1f1" />
                     <XAxis dataKey="period" stroke="#71717a" fontSize={12} />
                     <YAxis stroke="#71717a" fontSize={12} />
                     <Tooltip formatter={(value) => formatNumber(Number(value ?? 0))} />
@@ -212,8 +212,8 @@ const AnalyticsPage = () => {
       )}
 
       <SellerCard>
-        <h2 className="text-xl font-black tracking-tight text-black">Top-Selling Products</h2>
-        <p className="mt-1 text-sm text-zinc-500">Products sorted by units sold in the selected date range.</p>
+        <h2 className="text-xl font-light tracking-tight text-black">Top-Selling Products</h2>
+        <p className="mt-1 text-sm font-light text-zinc-500">Products sorted by units sold in the selected date range.</p>
 
         {(analytics?.topProducts.length ?? 0) === 0 ? (
           <p className="mt-4 rounded-2xl border border-zinc-100 bg-zinc-50/80 p-6 text-sm font-semibold text-zinc-500">
@@ -223,15 +223,15 @@ const AnalyticsPage = () => {
           <div className="mt-4">
             <SellerTable headers={['Product', 'SKU', 'Units Sold', 'Revenue']} compact>
               {analytics?.topProducts.map((product) => (
-                <tr key={product.productId}>
-                  <td className="px-4 py-3 text-sm font-black text-zinc-800">
+                <tr key={product.productId} className="group hover:bg-zinc-50/50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-light text-zinc-800">
                     {product.productName || 'Unnamed product'}
                   </td>
-                  <td className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-600">
+                  <td className="px-4 py-3 text-[11px] font-light uppercase tracking-widest text-zinc-400">
                     {product.skuCode || '--'}
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-zinc-700">{formatNumber(product.unitsSold)}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-zinc-700">{formatCurrency(product.revenue)}</td>
+                  <td className="px-4 py-3 text-sm font-light text-zinc-600">{formatNumber(product.unitsSold)}</td>
+                  <td className="px-4 py-3 text-sm font-light text-zinc-700">{formatCurrency(product.revenue)}</td>
                 </tr>
               ))}
             </SellerTable>

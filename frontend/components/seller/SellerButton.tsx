@@ -22,7 +22,7 @@ const SellerButton = ({
 }: SellerButtonProps) => {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-[0.2em] transition disabled:cursor-not-allowed disabled:opacity-60 ${toneClasses[tone]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-2xl px-5 py-3 text-xs font-light uppercase tracking-[0.2em] transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 shadow-lg shadow-black/5 active:scale-95 ${toneClasses[tone]} ${className}`}
       disabled={disabled || loading}
       {...props}
     >

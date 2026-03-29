@@ -1,4 +1,11 @@
 {
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix backend/app start",
+    "start:backend": "npm --prefix backend/app start",
+    "dev:backend": "npm --prefix backend/app run dev",
+    "postinstall": "npm --prefix backend/app install --omit=dev"
+  },
   "dependencies": {
     "z": "^1.0.9"
   }

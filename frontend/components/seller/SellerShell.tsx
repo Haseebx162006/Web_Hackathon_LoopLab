@@ -8,6 +8,7 @@ import type { AppDispatch, RootState } from '@/store/store';
 import { logout } from '@/store/authSlice';
 import toast from 'react-hot-toast';
 import {
+  IoHelpCircleOutline,
   IoArchiveOutline,
   IoBagHandleOutline,
   IoChatbubbleEllipsesOutline,
@@ -38,8 +39,11 @@ const NAV_ITEMS = [
   { href: '/seller-dashboard/messages', label: 'Messages', icon: IoChatbubbleEllipsesOutline },
   { href: '/seller-dashboard/coupons', label: 'Coupons', icon: IoPricetagOutline },
   { href: '/seller-dashboard/analytics', label: 'Analytics', icon: IoStatsChartOutline },
+  { href: '/seller-dashboard/faqs', label: 'FAQs', icon: IoHelpCircleOutline },
   { href: '/seller-dashboard/settings', label: 'Settings', icon: IoSettingsOutline },
 ] as const;
+
+const UNLOCKED_WHILE_PROFILE_INCOMPLETE = new Set(['/seller-dashboard/settings', '/seller-dashboard/faqs']);
 
 const isActiveItem = (pathname: string, href: string) => {
   if (href === '/seller-dashboard') {
@@ -111,7 +115,7 @@ const SellerShell = ({ children }: SellerShellProps) => {
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = isActiveItem(pathname, item.href);
-              const isLocked = !isProfileComplete && item.href !== '/seller-dashboard/settings';
+              const isLocked = !isProfileComplete && !UNLOCKED_WHILE_PROFILE_INCOMPLETE.has(item.href);
 
               const handleClick = (e: React.MouseEvent) => {
                 if (isLocked) {
@@ -154,25 +158,34 @@ const SellerShell = ({ children }: SellerShellProps) => {
                 </Link>
               );
             })}
+            <div className="mt-3 space-y-2 border-t border-zinc-100/50 pt-5 pb-2">
+              <Link
+                href="/"
+                className="group relative flex items-center gap-4 rounded-2xl px-4 py-3.5 text-zinc-500 transition-all duration-300 hover:bg-zinc-100/50 hover:text-black"
+              >
+                <IoHomeOutline className="text-xl group-hover:scale-110 transition-transform" />
+                {!isSidebarCollapsed && <span className="text-[13px] font-light tracking-wide animate-fade-in-up">Back to Home</span>}
+                {isSidebarCollapsed && (
+                  <div className="absolute left-full ml-4 hidden rounded-lg bg-black px-3 py-2 text-xs font-light text-white group-hover:block">
+                    Back to Home
+                  </div>
+                )}
+              </Link>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="group relative flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left text-rose-500 transition-all duration-300 hover:bg-rose-50/50"
+              >
+                <IoLogOutOutline className="text-xl group-hover:scale-110 transition-transform" />
+                {!isSidebarCollapsed && <span className="text-[13px] font-light tracking-wide animate-fade-in-up">Logout</span>}
+                {isSidebarCollapsed && (
+                  <div className="absolute left-full ml-4 hidden rounded-lg bg-black px-3 py-2 text-xs font-light text-white group-hover:block">
+                    Logout
+                  </div>
+                )}
+              </button>
+            </div>
           </nav>
-
-          <div className="mt-auto space-y-2 border-t border-zinc-100/50 pt-5">
-            <Link
-              href="/"
-              className="group relative flex items-center gap-4 rounded-2xl px-4 py-3.5 text-zinc-500 transition-all duration-300 hover:bg-zinc-100/50 hover:text-black"
-            >
-              <IoHomeOutline className="text-xl group-hover:scale-110 transition-transform" />
-              {!isSidebarCollapsed && <span className="text-[13px] font-light tracking-wide animate-fade-in-up">Back to Home</span>}
-            </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="group relative flex w-full items-center gap-4 rounded-2xl px-4 py-3.5 text-left text-rose-500 transition-all duration-300 hover:bg-rose-50/50"
-            >
-              <IoLogOutOutline className="text-xl group-hover:scale-110 transition-transform" />
-              {!isSidebarCollapsed && <span className="text-[13px] font-light tracking-wide animate-fade-in-up">Logout</span>}
-            </button>
-          </div>
 
           <button
             onClick={toggleSidebar}
@@ -232,7 +245,7 @@ const SellerShell = ({ children }: SellerShellProps) => {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <div className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" onClick={() => setMobileOpen(false)} />
-          <aside className="relative z-10 h-full w-[85%] max-w-xs bg-white/90 backdrop-blur-3xl px-6 py-8 shadow-2xl animate-fade-in-up">
+          <aside className="relative z-10 flex h-full w-[85%] max-w-xs flex-col bg-white/90 backdrop-blur-3xl px-6 py-8 shadow-2xl animate-fade-in-up">
             <div className="mb-10 flex items-center justify-between">
               <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
                 <img src="/assets/logo/logo.png" alt="LoopBazar" className="h-9 w-9 object-contain" />
@@ -247,11 +260,11 @@ const SellerShell = ({ children }: SellerShellProps) => {
               </button>
             </div>
 
-            <nav className="flex max-h-[calc(100vh-16rem)] flex-col gap-2 overflow-y-auto pr-1">
+            <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActiveItem(pathname, item.href);
-                const isLocked = !isProfileComplete && item.href !== '/seller-dashboard/settings';
+                const isLocked = !isProfileComplete && !UNLOCKED_WHILE_PROFILE_INCOMPLETE.has(item.href);
 
                 const handleClick = (e: React.MouseEvent) => {
                   if (isLocked) {
@@ -280,26 +293,25 @@ const SellerShell = ({ children }: SellerShellProps) => {
                   </Link>
                 );
               })}
+              <div className="mt-3 space-y-2 border-t border-zinc-100/50 pt-5 pb-2">
+                <Link
+                  href="/"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-4 rounded-2xl px-4 py-4 text-zinc-500 transition-all duration-300 hover:bg-zinc-100/50 hover:text-black"
+                >
+                  <IoHomeOutline className="text-xl" />
+                  <span className="text-sm font-light tracking-wide">Back to Home</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left text-rose-500 transition-all duration-300 hover:bg-rose-50/50"
+                >
+                  <IoLogOutOutline className="text-xl" />
+                  <span className="text-sm font-light tracking-wide">Logout</span>
+                </button>
+              </div>
             </nav>
-
-            <div className="mt-8 space-y-2 border-t border-zinc-100/50 pt-8">
-              <Link
-                href="/"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-4 rounded-2xl px-4 py-4 text-zinc-500 transition-all duration-300 hover:bg-zinc-100/50 hover:text-black"
-              >
-                <IoHomeOutline className="text-xl" />
-                <span className="text-sm font-light tracking-wide">Back to Home</span>
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left text-rose-500 transition-all duration-300 hover:bg-rose-50/50"
-              >
-                <IoLogOutOutline className="text-xl" />
-                <span className="text-sm font-light tracking-wide">Logout</span>
-              </button>
-            </div>
           </aside>
         </div>
       )}

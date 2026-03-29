@@ -42,6 +42,13 @@ const normalizePriceSuggestion = (rawSuggestion = {}, context = {}) => {
     maxPrice = Math.max(recommendedPrice, minPrice * 1.1);
   }
 
+  if (minPrice <= 0 || maxPrice <= 0 || maxPrice <= minPrice) {
+    const anchorPrice = Math.max(recommendedPrice, fallbackPrice, 1);
+    recommendedPrice = anchorPrice;
+    minPrice = anchorPrice * 0.9;
+    maxPrice = anchorPrice * 1.1;
+  }
+
   if (minPrice > maxPrice) {
     const swap = minPrice;
     minPrice = maxPrice;
@@ -59,7 +66,14 @@ const normalizePriceSuggestion = (rawSuggestion = {}, context = {}) => {
   }
 
   const rawConfidence = rawSuggestion.confidence ?? rawSuggestion.confidenceScore;
-  const confidence = clamp(Number.isFinite(Number(rawConfidence)) ? Number(rawConfidence) : 0.55, 0, 1);
+  const parsedConfidence = Number(rawConfidence);
+  const hasValidConfidence =
+    rawConfidence !== undefined &&
+    rawConfidence !== null &&
+    rawConfidence !== '' &&
+    Number.isFinite(parsedConfidence) &&
+    parsedConfidence > 0;
+  const confidence = clamp(hasValidConfidence ? parsedConfidence : 0.55, 0, 1);
 
   const reason =
     typeof rawSuggestion.reason === 'string' && rawSuggestion.reason.trim()

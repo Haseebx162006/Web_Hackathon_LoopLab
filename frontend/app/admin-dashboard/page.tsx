@@ -87,7 +87,7 @@ const AdminDashboardHomePage = () => {
                 key={value}
                 type="button"
                 onClick={() => setPeriod(value)}
-                className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition ${
+                className={`rounded-xl px-4 py-2 text-[10px] font-light uppercase tracking-[0.2em] transition ${
                   period === value ? 'bg-black text-white' : 'text-zinc-500 hover:text-black'
                 }`}
               >
@@ -133,7 +133,6 @@ const AdminDashboardHomePage = () => {
         <AdminStatCard
           title="Delivered Revenue"
           value={formatCurrency(dashboard?.totalRevenue ?? 0)}
-          hint="Delivered"
           tone="success"
         />
       </div>
@@ -144,10 +143,10 @@ const AdminDashboardHomePage = () => {
         <AdminCard className="2xl:col-span-2">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black tracking-tight text-black">Revenue Trend</h2>
-              <p className="text-sm font-semibold text-zinc-500">Payments captured successfully over the selected period.</p>
+              <h2 className="text-xl font-light tracking-tight text-black">Revenue Trend</h2>
+              <p className="text-sm font-light text-zinc-500">Payments captured successfully over the selected period.</p>
             </div>
-            <p className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-500">
+            <p className="rounded-full bg-zinc-100 px-3 py-1 text-[10px] font-light uppercase tracking-[0.18em] text-zinc-500">
               {period} view
             </p>
           </div>
@@ -155,7 +154,7 @@ const AdminDashboardHomePage = () => {
           {chartBusy ? <AdminLoader compact label="Loading revenue chart..." /> : null}
 
           {!chartBusy && revenueSeries.length === 0 ? (
-            <p className="rounded-2xl border border-zinc-100 bg-zinc-50 p-6 text-sm font-semibold text-zinc-500">
+            <p className="rounded-2xl border border-zinc-100 bg-zinc-50 p-6 text-sm font-light text-zinc-500">
               No revenue entries yet for this time window.
             </p>
           ) : null}
@@ -209,13 +208,13 @@ const AdminDashboardHomePage = () => {
         </AdminCard>
 
         <AdminCard>
-          <h2 className="text-xl font-black tracking-tight text-black">Top Categories</h2>
-          <p className="mt-1 text-sm font-semibold text-zinc-500">Most purchased categories by quantity.</p>
+          <h2 className="text-xl font-light tracking-tight text-black">Top Categories</h2>
+          <p className="mt-1 text-sm font-light text-zinc-500">Most purchased categories by quantity.</p>
 
           {chartBusy ? <div className="mt-5"><AdminLoader compact label="Computing categories..." /></div> : null}
 
           {!chartBusy && topCategories.length === 0 ? (
-            <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+            <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-light text-zinc-500">
               Category analytics will appear once orders are placed.
             </p>
           ) : null}
@@ -225,8 +224,8 @@ const AdminDashboardHomePage = () => {
               {topCategories.map((category, index) => (
                 <li key={`${category.category}-${index}`} className="rounded-2xl border border-zinc-100 bg-zinc-50 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-black text-zinc-800">{category.category || 'Uncategorized'}</p>
-                    <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-500">
+                    <p className="text-sm font-light text-zinc-800">{category.category || 'Uncategorized'}</p>
+                    <p className="text-xs font-light uppercase tracking-[0.16em] text-zinc-500">
                       {formatNumber(category.totalSales)} sold
                     </p>
                   </div>
@@ -236,17 +235,17 @@ const AdminDashboardHomePage = () => {
           ) : null}
 
           <div className="mt-6 rounded-2xl border border-zinc-100 bg-white p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Active users in 30 days</p>
+            <p className="text-[10px] font-light uppercase tracking-[0.2em] text-zinc-400">Active users in 30 days</p>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs font-semibold text-zinc-500">Buyers</p>
-                <p className="text-2xl font-black tracking-tight text-zinc-900">
+                <p className="text-xs font-light text-zinc-500">Buyers</p>
+                <p className="text-2xl font-light tracking-tight text-zinc-900">
                   {formatNumber(analytics?.activeUsers.buyers ?? 0)}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-semibold text-zinc-500">Sellers</p>
-                <p className="text-2xl font-black tracking-tight text-zinc-900">
+                <p className="text-xs font-light text-zinc-500">Sellers</p>
+                <p className="text-2xl font-light tracking-tight text-zinc-900">
                   {formatNumber(analytics?.activeUsers.sellers ?? 0)}
                 </p>
               </div>
@@ -256,13 +255,13 @@ const AdminDashboardHomePage = () => {
       </div>
 
       <AdminCard>
-        <h2 className="text-xl font-black tracking-tight text-black">Order Volume Trend</h2>
-        <p className="mt-1 text-sm font-semibold text-zinc-500">Platform-wide order count movement over time.</p>
+        <h2 className="text-xl font-light tracking-tight text-black">Order Volume Trend</h2>
+        <p className="mt-1 text-sm font-light text-zinc-500">Platform-wide order count movement over time.</p>
 
         {chartBusy ? <div className="mt-5"><AdminLoader compact label="Loading order trend..." /></div> : null}
 
         {!chartBusy && orderSeries.length === 0 ? (
-          <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+          <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-light text-zinc-500">
             No order trend data is available yet.
           </p>
         ) : null}
@@ -285,13 +284,13 @@ const AdminDashboardHomePage = () => {
       <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
         <AdminCard>
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-xl font-black tracking-tight text-black">Recent Users</h2>
+            <h2 className="text-xl font-light tracking-tight text-black">Recent Users</h2>
             <button
               type="button"
               onClick={() => {
                 void refetch();
               }}
-              className="rounded-xl border border-zinc-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
+              className="rounded-xl border border-zinc-200 px-3 py-2 text-[10px] font-light uppercase tracking-[0.2em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
             >
               Refresh
             </button>
@@ -301,8 +300,8 @@ const AdminDashboardHomePage = () => {
             {(dashboard?.recentUsers ?? []).map((item) => (
               <tr key={item._id} className="align-top">
                 <td className="px-4 py-3">
-                  <p className="text-sm font-black text-zinc-900">{item.name || item.storeName || item.email}</p>
-                  <p className="text-xs font-semibold text-zinc-500">{item.email}</p>
+                  <p className="text-sm font-light text-zinc-900">{item.name || item.storeName || item.email}</p>
+                  <p className="text-xs font-light text-zinc-500">{item.email}</p>
                 </td>
                 <td className="px-4 py-3">
                   <AdminStatusBadge status={item.role} />
@@ -310,15 +309,15 @@ const AdminDashboardHomePage = () => {
                 <td className="px-4 py-3">
                   <AdminStatusBadge status={item.status} />
                 </td>
-                <td className="px-4 py-3 text-xs font-semibold text-zinc-600">{formatDateTime(item.createdAt)}</td>
+                <td className="px-4 py-3 text-xs font-light text-zinc-600">{formatDateTime(item.createdAt)}</td>
               </tr>
             ))}
           </AdminTable>
         </AdminCard>
 
         <AdminCard>
-          <h2 className="text-xl font-black tracking-tight text-black">Recent Orders</h2>
-          <p className="mt-1 text-sm font-semibold text-zinc-500">Latest order activity from across all sellers.</p>
+          <h2 className="text-xl font-light tracking-tight text-black">Recent Orders</h2>
+          <p className="mt-1 text-sm font-light text-zinc-500">Latest order activity from across all sellers.</p>
 
           <div className="mt-4">
             <AdminTable headers={['Order', 'Buyer', 'Status', 'Amount']} minWidthClassName="min-w-[700px]">
@@ -328,14 +327,14 @@ const AdminDashboardHomePage = () => {
                 return (
                   <tr key={order._id} className="align-top">
                     <td className="px-4 py-3">
-                      <p className="text-sm font-black text-zinc-900">#{order._id.slice(-8)}</p>
-                      <p className="text-xs font-semibold text-zinc-500">{formatDateTime(order.createdAt)}</p>
+                      <p className="text-sm font-light text-zinc-900">#{order._id.slice(-8)}</p>
+                      <p className="text-xs font-light text-zinc-500">{formatDateTime(order.createdAt)}</p>
                     </td>
-                    <td className="px-4 py-3 text-xs font-semibold text-zinc-700">{buyer}</td>
+                    <td className="px-4 py-3 text-xs font-light text-zinc-700">{buyer}</td>
                     <td className="px-4 py-3">
                       <AdminStatusBadge status={order.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm font-black text-zinc-900">{formatCurrency(order.totalAmount)}</td>
+                    <td className="px-4 py-3 text-sm font-light text-zinc-900">{formatCurrency(order.totalAmount)}</td>
                   </tr>
                 );
               })}

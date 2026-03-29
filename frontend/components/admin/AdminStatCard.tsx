@@ -16,12 +16,12 @@ const toneClasses: Record<NonNullable<AdminStatCardProps['tone']>, string> = {
 
 const AdminStatCard = ({ title, value, hint, tone = 'default' }: AdminStatCardProps) => {
   return (
-    <div className={`glass rounded-3xl border p-6 ${toneClasses[tone]}`}>
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">{title}</p>
+    <div className={`glass rounded-3xl border backdrop-blur-3xl p-6 ${toneClasses[tone]}`}>
+      <p className="text-[10px] font-light uppercase tracking-[0.3em] text-zinc-400">{title}</p>
       <div className="mt-4 flex items-end justify-between gap-4">
-        <p className="text-2xl font-black tracking-tight text-black md:text-3xl">{value}</p>
+        <p className="text-2xl font-light tracking-tight text-black md:text-3xl">{value}</p>
         {hint ? (
-          <span className="rounded-full bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
+          <span className="rounded-full bg-white px-3 py-1 text-[10px] font-light uppercase tracking-[0.16em] text-zinc-500">
             {hint}
           </span>
         ) : null}

@@ -12,6 +12,8 @@ The platform combines a Next.js frontend with an Express + MongoDB backend, and 
 
 It is production-oriented with health checks, proxy-aware backend configuration, role-based access control, rate limiting, and deployment guides for Render, Railway, and Vercel.
 
+--- URl :https://web-hackathon-loop-lab.vercel.app/
+
 ## ✨ Features
 ### Buyer Experience
 - Public product discovery with category filters, sorting, and pagination

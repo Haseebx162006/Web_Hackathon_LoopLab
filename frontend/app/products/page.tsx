@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -31,7 +31,7 @@ const sortOptions = [
   { label: 'Price: High to Low', value: 'price_desc' },
 ] as const;
 
-const ProductListingPage = () => {
+const ProductListingPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { role, isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -460,5 +460,17 @@ const ProductListingPage = () => {
     </BuyerPageShell>
   );
 };
+
+const ProductListingPageFallback = () => (
+  <BuyerPageShell>
+    <BuyerLoader label="Loading products..." />
+  </BuyerPageShell>
+);
+
+const ProductListingPage = () => (
+  <Suspense fallback={<ProductListingPageFallback />}>
+    <ProductListingPageContent />
+  </Suspense>
+);
 
 export default ProductListingPage;

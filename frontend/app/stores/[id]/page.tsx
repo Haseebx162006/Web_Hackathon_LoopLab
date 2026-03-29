@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { IoArrowBack, IoChatbubbleEllipsesOutline, IoStorefront } from 'react-icons/io5';
@@ -16,7 +16,7 @@ import BuyerPageShell from '@/components/buyer/BuyerPageShell';
 import BuyerProductCard from '@/components/buyer/BuyerProductCard';
 import { isBuyerAuthenticated, normalizeApiError } from '@/utils/buyerUtils';
 
-const StorePage = () => {
+const StorePageContent = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -224,5 +224,17 @@ const StorePage = () => {
     </BuyerPageShell>
   );
 };
+
+const StorePageFallback = () => (
+  <BuyerPageShell>
+    <BuyerLoader label="Opening Store..." />
+  </BuyerPageShell>
+);
+
+const StorePage = () => (
+  <Suspense fallback={<StorePageFallback />}>
+    <StorePageContent />
+  </Suspense>
+);
 
 export default StorePage;

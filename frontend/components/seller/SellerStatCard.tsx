@@ -9,11 +9,17 @@ interface SellerStatCardProps {
 
 const SellerStatCard = ({ title, value, hint, tone = 'default', className = '', style = {} }: SellerStatCardProps & { className?: string; style?: React.CSSProperties }) => {
   const hasBg = /\bbg-/.test(className);
+  const styleRecord = style as Record<string, unknown>;
+  const hasInlineBackground =
+    styleRecord.backgroundColor != null ||
+    styleRecord.background != null ||
+    styleRecord['background-color'] != null;
+
   return (
     <div
       style={style}
       className={`glass rounded-[2.5rem] p-7 space-y-5 border backdrop-blur-2xl transition-all duration-500 hover:shadow-brand-hover/10 ${
-        tone === 'danger' ? 'border-rose-100/50 bg-rose-50/30' : `${!hasBg && !style.backgroundColor && !style.background ? 'bg-white/80' : ''} border-white/80 shadow-sm`
+        tone === 'danger' ? 'border-rose-100/50 bg-rose-50/30' : `${!hasBg && !hasInlineBackground ? 'bg-white/80' : ''} border-white/80 shadow-sm`
       } ${className}`}
     >
       <div className="flex items-center justify-between">

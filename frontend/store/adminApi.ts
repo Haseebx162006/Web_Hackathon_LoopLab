@@ -117,6 +117,7 @@ export interface AdminDashboardData {
   totalBuyers: number;
   totalSellers: number;
   totalOrders: number;
+  pendingOrders?: number;
   totalRevenue: number;
   recentOrders: AdminOrderSummary[];
   recentUsers: AdminUserSummary[];

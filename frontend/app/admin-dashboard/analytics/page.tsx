@@ -8,8 +8,14 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
+  RadialBar,
+  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -28,6 +34,7 @@ import {
   isAdminAuthenticated,
   normalizeApiError,
 } from '@/utils/adminUtils';
+import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Package } from 'lucide-react';
 
 const PlatformAnalyticsPage = () => {
   const { role, isAuthenticated } = useSelector((state: RootState) => state.auth);
@@ -46,6 +53,8 @@ const PlatformAnalyticsPage = () => {
 
   const analytics = analyticsResponse?.data;
 
+  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#6366f1'];
+
   const totals = useMemo(() => {
     const revenueTotal = (analytics?.revenueChart ?? []).reduce((sum, row) => sum + row.revenue, 0);
     const orderTotal = (analytics?.orderTrends ?? []).reduce((sum, row) => sum + row.orders, 0);
@@ -63,22 +72,65 @@ const PlatformAnalyticsPage = () => {
     };
   }, [analytics?.activeUsers.buyers, analytics?.activeUsers.sellers, analytics?.orderTrends, analytics?.revenueChart, analytics?.topCategories]);
 
+  const categoryPieData = useMemo(() => {
+    return (analytics?.topCategories ?? []).map((cat) => ({
+      name: cat.category,
+      value: cat.totalSales,
+    }));
+  }, [analytics?.topCategories]);
+
+  const userDistributionData = useMemo(() => {
+    return [
+      {
+        name: 'Buyers',
+        value: totals.activeBuyers,
+        fill: '#3b82f6',
+      },
+      {
+        name: 'Sellers',
+        value: totals.activeSellers,
+        fill: '#8b5cf6',
+      },
+    ];
+  }, [totals.activeBuyers, totals.activeSellers]);
+
+  const radialData = useMemo(() => {
+    const total = totals.revenueTotal;
+    const orderCount = totals.orderTotal;
+    return [
+      {
+        name: 'Revenue',
+        value: total > 0 ? 100 : 0,
+        fill: '#10b981',
+      },
+      {
+        name: 'Orders',
+        value: orderCount > 0 ? (orderCount / (orderCount + 50)) * 100 : 0,
+        fill: '#3b82f6',
+      },
+    ];
+  }, [totals.revenueTotal, totals.orderTotal]);
+
   const chartBusy = isLoading || isFetching;
 
   return (
+    <>
+    
     <div className="space-y-8">
       <AdminPageHeader
         title="Platform Analytics"
         description="Analyze revenue velocity, order growth, category traction, and active user behavior."
         action={
-          <div className="inline-flex rounded-2xl bg-zinc-100 p-1">
+          <div className="inline-flex rounded-2xl bg-gradient-to-r from-zinc-100 to-zinc-200 p-1 shadow-sm">
             {(['daily', 'weekly', 'monthly'] as const).map((value) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setPeriod(value)}
-                className={`rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition ${
-                  period === value ? 'bg-black text-white' : 'text-zinc-500 hover:text-black'
+                className={`rounded-xl px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition ${
+                  period === value 
+                    ? 'bg-gradient-to-r from-black to-zinc-800 text-white shadow-lg' 
+                    : 'text-zinc-600 hover:text-black'
                 }`}
               >
                 {value}
@@ -98,15 +150,57 @@ const PlatformAnalyticsPage = () => {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <AdminStatCard title="Revenue Total" value={formatCurrency(totals.revenueTotal)} hint={period} tone="success" />
-        <AdminStatCard title="Orders Total" value={formatNumber(totals.orderTotal)} hint={period} />
-        <AdminStatCard title="Active Buyers" value={formatNumber(totals.activeBuyers)} hint="30 days" tone="success" />
-        <AdminStatCard title="Active Sellers" value={formatNumber(totals.activeSellers)} hint="30 days" tone="warning" />
-        <AdminStatCard
-          title="Top Category"
-          value={totals.topCategory?.category || '--'}
-          hint={totals.topCategory ? `${formatNumber(totals.topCategory.totalSales)} sold` : 'No data'}
-        />
+        <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm transition hover:shadow-lg">
+          <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-emerald-500/10"></div>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg">
+            <DollarSign className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Revenue Total</p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-zinc-900">{formatCurrency(totals.revenueTotal)}</p>
+          <p className="mt-1 text-xs font-semibold text-zinc-500">{period}</p>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm transition hover:shadow-lg">
+          <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-blue-500/10"></div>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg">
+            <ShoppingCart className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Orders Total</p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-zinc-900">{formatNumber(totals.orderTotal)}</p>
+          <p className="mt-1 text-xs font-semibold text-zinc-500">{period}</p>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-purple-50 to-white p-6 shadow-sm transition hover:shadow-lg">
+          <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-purple-500/10"></div>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+            <Users className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-600">Active Buyers</p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-zinc-900">{formatNumber(totals.activeBuyers)}</p>
+          <p className="mt-1 text-xs font-semibold text-zinc-500">30 days</p>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm transition hover:shadow-lg">
+          <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-amber-500/10"></div>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 shadow-lg">
+            <TrendingUp className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Active Sellers</p>
+          <p className="mt-2 text-2xl font-black tracking-tight text-zinc-900">{formatNumber(totals.activeSellers)}</p>
+          <p className="mt-1 text-xs font-semibold text-zinc-500">30 days</p>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm transition hover:shadow-lg">
+          <div className="absolute right-0 top-0 h-24 w-24 translate-x-10 -translate-y-10 rounded-full bg-rose-500/10"></div>
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-rose-600 shadow-lg">
+            <Package className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-rose-600">Top Category</p>
+          <p className="mt-2 text-lg font-black tracking-tight text-zinc-900">{totals.topCategory?.category || '--'}</p>
+          <p className="mt-1 text-xs font-semibold text-zinc-500">
+            {totals.topCategory ? `${formatNumber(totals.topCategory.totalSales)} sold` : 'No data'}
+          </p>
+        </div>
       </div>
 
       {chartBusy ? <AdminLoader label="Loading analytics visualizations..." /> : null}
@@ -160,12 +254,9 @@ const PlatformAnalyticsPage = () => {
           ) : null}
         </AdminCard>
 
-        <AdminCard>
-          <h2 className="text-xl font-black tracking-tight text-black">Order Activity</h2>
-          <p className="mt-1 text-sm font-semibold text-zinc-500">Order traffic progression for platform demand monitoring.</p>
-
+<AdminCard>
           {!chartBusy && (analytics?.orderTrends.length ?? 0) === 0 ? (
-            <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+            <p className="mt-5 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm font-semibold text-zinc-500">
               Order trend data is not available yet.
             </p>
           ) : null}
@@ -174,17 +265,24 @@ const PlatformAnalyticsPage = () => {
             <div className="mt-5 h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={analytics?.orderTrends} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
-                  <XAxis dataKey="date" stroke="#71717a" fontSize={12} />
-                  <YAxis stroke="#71717a" fontSize={12} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="date" stroke="#71717a" fontSize={12} fontWeight={600} />
+                  <YAxis stroke="#71717a" fontSize={12} fontWeight={600} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '2px solid #e5e7eb', 
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="orders"
-                    stroke="#16a34a"
+                    stroke="#3b82f6"
                     strokeWidth={3}
-                    dot={{ r: 4, fill: '#16a34a' }}
-                    activeDot={{ r: 6 }}
+                    dot={{ r: 5, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 7 }}
                     name="Orders"
                   />
                 </LineChart>
@@ -192,33 +290,101 @@ const PlatformAnalyticsPage = () => {
             </div>
           ) : null}
         </AdminCard>
+
+        <AdminCard>
+          <div className="mb-5 flex items-center justify-between border-b border-zinc-200 pb-4">
+            <div>
+              <h2 className="text-xl font-black tracking-tight text-black">Category Distribution</h2>
+              <p className="mt-1 text-sm font-semibold text-zinc-500">Sales by product category</p>
+            </div>
+            <Package className="h-8 w-8 text-rose-600" />
+          </div>
+
+          {!chartBusy && categoryPieData.length === 0 ? (
+            <p className="mt-5 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm font-semibold text-zinc-500">
+              Category data is not available yet.
+            </p>
+          ) : null}
+
+          {!chartBusy && categoryPieData.length > 0 ? (
+            <div className="mt-5 h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryPieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={true}
+label={({ name, percent }) =>
+  `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
+}                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {categoryPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '2px solid #e5e7eb', 
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : null}
+        </AdminCard>
       </div>
 
       <AdminCard>
-        <h2 className="text-xl font-black tracking-tight text-black">Top Categories by Sales</h2>
-        <p className="mt-1 text-sm font-semibold text-zinc-500">Category contribution using ordered quantities.</p>
+        <div className="mb-5 flex items-center justify-between border-b border-zinc-200 pb-4">
+          <div>
+            <h2 className="text-xl font-black tracking-tight text-black">Top Categories by Sales Volume</h2>
+            <p className="mt-1 text-sm font-semibold text-zinc-500">Category contribution using ordered quantities.</p>
+          </div>
+          <TrendingUp className="h-8 w-8 text-zinc-600" />
+        </div>
 
         {!chartBusy && (analytics?.topCategories.length ?? 0) === 0 ? (
-          <p className="mt-5 rounded-2xl border border-zinc-100 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+          <p className="mt-5 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 p-6 text-center text-sm font-semibold text-zinc-500">
             Top categories will appear after category-level order data is available.
           </p>
         ) : null}
 
         {!chartBusy && (analytics?.topCategories.length ?? 0) > 0 ? (
-          <div className="mt-5 h-[340px]">
+          <div className="mt-5 h-[360px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={analytics?.topCategories} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="4 4" stroke="#e5e7eb" />
-                <XAxis dataKey="category" stroke="#71717a" fontSize={12} />
-                <YAxis stroke="#71717a" fontSize={12} />
-                <Tooltip />
-                <Bar dataKey="totalSales" name="Units Sold" fill="#111827" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        ) : null}
-      </AdminCard>
+                <defs>
+                  <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.9}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="category" stroke="#71717a" fontSize={12} fontWeight={600} />
+                <YAxis stroke="#71717a" fontSize={12} fontWeight={600} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '2px solid #e5e7eb', 
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }}
+                />
+                <Bar dataKey="totalSales" name="Units Sold" fill="url(#colorBar)" radius={[8, 8, 0, 0]} />
+</BarChart>
+</ResponsiveContainer>
+</div>
+) : null}
+</AdminCard>
     </div>
+    </>
   );
 };
 

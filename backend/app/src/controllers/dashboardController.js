@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
+const User = require('../models/User');
+const {
+  buyerProfileUpdateSchema,
+  buyerAddressSchema,
+} = require('../utils/validators');
 
 const getBuyerOrders = async (req, res, next) => {
   try {
@@ -57,7 +62,171 @@ const requestOrderReturn = async (req, res, next) => {
   }
 };
 
+const getBuyerProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      res.status(404);
+      return next(new Error('Buyer profile not found'));
+    }
+
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateBuyerProfile = async (req, res, next) => {
+  try {
+    const parsed = buyerProfileUpdateSchema.parse(req.body || {});
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      return next(new Error('Buyer profile not found'));
+    }
+
+    if (parsed.name !== undefined) {
+      user.name = parsed.name;
+    }
+
+    if (parsed.phoneNumber !== undefined) {
+      user.phoneNumber = parsed.phoneNumber;
+    }
+
+    await user.save();
+
+    const fresh = await User.findById(user._id).select('-password');
+    res.status(200).json({ success: true, data: fresh });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const addAddress = async (req, res, next) => {
+  try {
+    const parsed = buyerAddressSchema.parse(req.body || {});
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      return next(new Error('Buyer profile not found'));
+    }
+
+    if (!Array.isArray(user.addresses)) {
+      user.addresses = [];
+    }
+
+    const nextAddress = {
+      label: parsed.label || 'Home',
+      street: parsed.street,
+      city: parsed.city,
+      state: parsed.state || '',
+      country: parsed.country || 'Pakistan',
+      zipCode: parsed.zipCode || '',
+      lat: parsed.lat,
+      lng: parsed.lng,
+      isDefault: Boolean(parsed.isDefault),
+    };
+
+    if (user.addresses.length === 0) {
+      nextAddress.isDefault = true;
+    }
+
+    if (nextAddress.isDefault) {
+      user.addresses.forEach((address) => {
+        address.isDefault = false;
+      });
+    }
+
+    user.addresses.push(nextAddress);
+
+    if (!user.addresses.some((address) => address.isDefault) && user.addresses.length > 0) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+
+    res.status(201).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const removeAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      return next(new Error('Invalid address id'));
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      return next(new Error('Buyer profile not found'));
+    }
+
+    const index = user.addresses.findIndex((address) => String(address._id) === id);
+    if (index < 0) {
+      res.status(404);
+      return next(new Error('Address not found'));
+    }
+
+    const wasDefault = user.addresses[index].isDefault;
+    user.addresses.splice(index, 1);
+
+    if (wasDefault && user.addresses.length > 0 && !user.addresses.some((address) => address.isDefault)) {
+      user.addresses[0].isDefault = true;
+    }
+
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const setDefaultAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      return next(new Error('Invalid address id'));
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      return next(new Error('Buyer profile not found'));
+    }
+
+    const target = user.addresses.id(id);
+    if (!target) {
+      res.status(404);
+      return next(new Error('Address not found'));
+    }
+
+    user.addresses.forEach((address) => {
+      address.isDefault = false;
+    });
+    target.isDefault = true;
+
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getBuyerOrders,
   requestOrderReturn,
+  getBuyerProfile,
+  updateBuyerProfile,
+  addAddress,
+  removeAddress,
+  setDefaultAddress,
 };

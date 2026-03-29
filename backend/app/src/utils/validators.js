@@ -159,6 +159,27 @@ const sellerProfileUpdateSchema = z.object({
     .optional(),
 });
 
+const buyerProfileUpdateSchema = z
+  .object({
+    name: z.string().max(120).optional(),
+    phoneNumber: z.string().max(50).optional(),
+  })
+  .refine((data) => Object.keys(data).some((key) => data[key] !== undefined), {
+    message: 'At least one field is required',
+  });
+
+const buyerAddressSchema = z.object({
+  label: z.string().max(100).optional(),
+  street: z.string().min(1, 'Street is required').max(300),
+  city: z.string().min(1, 'City is required').max(120),
+  state: z.string().max(120).optional(),
+  country: z.string().max(120).optional(),
+  zipCode: z.string().max(30).optional(),
+  lat: z.number().finite().optional(),
+  lng: z.number().finite().optional(),
+  isDefault: z.boolean().optional(),
+});
+
 const sellerPasswordChangeSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
@@ -329,6 +350,8 @@ module.exports = {
   couponUpdateSchema,
   analyticsQuerySchema,
   sellerProfileUpdateSchema,
+  buyerProfileUpdateSchema,
+  buyerAddressSchema,
   sellerPasswordChangeSchema,
   checkoutSchema,
   adminLoginSchema,

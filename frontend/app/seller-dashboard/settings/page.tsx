@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { 
+  IoAddOutline,
   IoStorefrontOutline, 
   IoPersonOutline, 
   IoCallOutline, 
@@ -12,7 +13,8 @@ import {
   IoImageOutline,
   IoLockClosedOutline,
   IoCheckmarkCircleOutline,
-  IoCard
+  IoCard,
+  IoTrashOutline
 } from 'react-icons/io5';
 import { BsBank } from "react-icons/bs";
 import SellerButton from '@/components/seller/SellerButton';
@@ -23,6 +25,7 @@ import SellerLoader from '@/components/seller/SellerLoader';
 import SellerPageHeader from '@/components/seller/SellerPageHeader';
 import SellerTextarea from '@/components/seller/SellerTextarea';
 import {
+  type SellerStoreFaq,
   useChangeSellerPasswordMutation,
   useGetSellerProfileQuery,
   useUpdateSellerProfileMutation,
@@ -33,6 +36,7 @@ interface ProfileFormState {
   storeName: string;
   ownerName: string;
   storeDescription: string;
+  storeFaqs: SellerStoreFaq[];
   businessAddress: string;
   bankAccountHolderName: string;
   bankName: string;
@@ -47,6 +51,20 @@ interface PasswordFormState {
   confirmNewPassword: string;
 }
 
+const normalizeStoreFaqs = (faqs: SellerStoreFaq[] | undefined): SellerStoreFaq[] => {
+  if (!Array.isArray(faqs)) {
+    return [];
+  }
+
+  return faqs
+    .map((faq) => ({
+      _id: faq._id,
+      question: String(faq.question ?? '').trim(),
+      answer: String(faq.answer ?? '').trim(),
+    }))
+    .filter((faq) => faq.question.length > 0 && faq.answer.length > 0);
+};
+
 const SettingsPage = () => {
   const [profileForm, setProfileForm] = useState<Partial<ProfileFormState>>({});
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>({
@@ -58,6 +76,8 @@ const SettingsPage = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [faqQuestion, setFaqQuestion] = useState('');
+  const [faqAnswer, setFaqAnswer] = useState('');
 
   const {
     data: profileResponse,
@@ -77,6 +97,7 @@ const SettingsPage = () => {
     storeName: profileForm.storeName ?? profile?.storeName ?? '',
     ownerName: profileForm.ownerName ?? profile?.ownerName ?? '',
     storeDescription: profileForm.storeDescription ?? profile?.storeDescription ?? '',
+    storeFaqs: normalizeStoreFaqs(profileForm.storeFaqs ?? profile?.storeFaqs),
     businessAddress: profileForm.businessAddress ?? profile?.businessAddress ?? '',
     bankAccountHolderName: profileForm.bankAccountHolderName ?? profile?.bankAccountHolderName ?? '',
     bankName: profileForm.bankName ?? profile?.bankName ?? '',
@@ -109,6 +130,7 @@ const SettingsPage = () => {
         storeName: profileValues.storeName,
         ownerName: profileValues.ownerName,
         storeDescription: profileValues.storeDescription,
+        storeFaqs: profileValues.storeFaqs,
         businessAddress: profileValues.businessAddress,
         bankAccountHolderName: profileValues.bankAccountHolderName,
         bankName: profileValues.bankName,
@@ -127,6 +149,37 @@ const SettingsPage = () => {
     } catch (requestError) {
       setProfileError(normalizeApiError(requestError, 'Failed to update profile settings.'));
     }
+  };
+
+  const handleAddFaq = () => {
+    const question = faqQuestion.trim();
+    const answer = faqAnswer.trim();
+
+    if (!question || !answer) {
+      toast.error('Please provide both FAQ question and answer.');
+      return;
+    }
+
+    if (profileValues.storeFaqs.length >= 30) {
+      toast.error('Maximum 30 FAQs are allowed.');
+      return;
+    }
+
+    setProfileForm((prev) => ({
+      ...prev,
+      storeFaqs: [...profileValues.storeFaqs, { question, answer }],
+    }));
+    setFaqQuestion('');
+    setFaqAnswer('');
+    toast.success('FAQ added. Save profile to publish changes.');
+  };
+
+  const handleDeleteFaq = (index: number) => {
+    setProfileForm((prev) => ({
+      ...prev,
+      storeFaqs: profileValues.storeFaqs.filter((_, faqIndex) => faqIndex !== index),
+    }));
+    toast.success('FAQ removed. Save profile to publish changes.');
   };
 
   const handlePasswordSubmit = async (event: React.FormEvent) => {
@@ -367,6 +420,76 @@ const SettingsPage = () => {
                       }))
                     }
                   />
+
+                  <div className="space-y-4 rounded-3xl border border-zinc-200 bg-zinc-50/40 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-sm font-light tracking-tight text-zinc-900">Store FAQs</h3>
+                        <p className="mt-1 text-xs text-zinc-500">
+                          Add common buyer questions shown on product details pages for your store.
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+                        {profileValues.storeFaqs.length}/30
+                      </span>
+                    </div>
+
+                    {profileValues.storeFaqs.length > 0 ? (
+                      <div className="space-y-3">
+                        {profileValues.storeFaqs.map((faq, index) => (
+                          <div key={faq._id ?? `${faq.question}-${index}`} className="rounded-2xl border border-zinc-200 bg-white p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Question</p>
+                                <p className="mt-1 text-sm font-semibold text-zinc-800">{faq.question}</p>
+                                <p className="mt-3 text-xs font-black uppercase tracking-[0.2em] text-zinc-400">Answer</p>
+                                <p className="mt-1 text-sm font-semibold text-zinc-600 whitespace-pre-wrap">{faq.answer}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteFaq(index)}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 text-rose-600 transition hover:bg-rose-50"
+                                aria-label="Delete FAQ"
+                              >
+                                <IoTrashOutline className="text-lg" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-4">
+                        <p className="text-sm text-zinc-500">No FAQs added yet. Add your first FAQ below.</p>
+                      </div>
+                    )}
+
+                    <div className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
+                      <SellerInput
+                        label="FAQ Question"
+                        value={faqQuestion}
+                        onChange={(event) => setFaqQuestion(event.target.value)}
+                        placeholder="Example: How long does delivery take?"
+                      />
+                      <SellerTextarea
+                        label="FAQ Answer"
+                        rows={3}
+                        value={faqAnswer}
+                        onChange={(event) => setFaqAnswer(event.target.value)}
+                        placeholder="Example: We dispatch within 24 hours and delivery typically takes 3-5 working days."
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={handleAddFaq}
+                          disabled={profileValues.storeFaqs.length >= 30}
+                          className="inline-flex items-center gap-2 rounded-2xl bg-black px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                        >
+                          <IoAddOutline className="text-base" />
+                          Add FAQ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   <div className="space-y-3">
                     <label className="block">

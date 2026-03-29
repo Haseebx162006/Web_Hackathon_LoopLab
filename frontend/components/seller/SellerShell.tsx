@@ -107,7 +107,7 @@ const SellerShell = ({ children }: SellerShellProps) => {
             </Link>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-2">
+          <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = isActiveItem(pathname, item.href);
@@ -247,7 +247,7 @@ const SellerShell = ({ children }: SellerShellProps) => {
               </button>
             </div>
 
-            <nav className="flex flex-col gap-2">
+            <nav className="flex max-h-[calc(100vh-16rem)] flex-col gap-2 overflow-y-auto pr-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isActiveItem(pathname, item.href);

@@ -63,6 +63,7 @@ export const apiSlice = createApi({
     'AdminAnalytics',
     'ChatConversation',
     'ChatMessage',
+    'BuyerProfile',
   ],
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',

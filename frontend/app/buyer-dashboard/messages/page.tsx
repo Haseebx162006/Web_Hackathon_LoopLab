@@ -24,7 +24,7 @@ const BuyerMessagesPage = () => {
   const isBuyer = isHydrated && ((role === 'buyer' && isAuthenticated) || isBuyerAuthenticated());
 
   return (
-    <BuyerPageShell>
+    <>
       {!isBuyer ? (
         <BuyerAuthGate
           title="Buyer messages are protected"
@@ -37,7 +37,7 @@ const BuyerMessagesPage = () => {
           description="Coordinate delivery, ask product questions, and resolve order updates with sellers instantly."
         />
       )}
-    </BuyerPageShell>
+    </>
   );
 };
 

@@ -169,6 +169,25 @@ const ProductDetailPage = () => {
     }
   };
 
+  const handleChat = () => {
+    if (!isBuyer) {
+      askLogin();
+      return;
+    }
+
+    const sellerId =
+      typeof product?.sellerId === 'object'
+        ? (product.sellerId as { _id?: string })._id
+        : product?.sellerId;
+
+    if (!sellerId) {
+      toast.error('Unable to identify store owner.');
+      return;
+    }
+
+    router.push(`/buyer-dashboard/messages?receiverId=${sellerId}&productId=${product._id}`);
+  };
+
   if (isLoading) {
     return (
       <BuyerPageShell>
@@ -348,6 +367,7 @@ const ProductDetailPage = () => {
                   </Link>
                   <button
                     type="button"
+                    onClick={handleChat}
                     className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-zinc-900 hover:text-white"
                   >
                     <IoChatbubbleEllipsesOutline className="text-lg" />

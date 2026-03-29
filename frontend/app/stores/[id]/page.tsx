@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { IoArrowBack, IoChatbubbleEllipsesOutline, IoStorefront } from 'react-icons/io5';
+import toast from 'react-hot-toast';
 import type { RootState } from '@/store/store';
 import {
   useGetBuyerProductsQuery,
@@ -69,6 +70,21 @@ const StorePage = () => {
     const current = new URLSearchParams(searchParams.toString());
     current.set('page', String(newPage));
     router.push(`/stores/${sellerId}?${current.toString()}`);
+  };
+
+  const handleChat = () => {
+    if (!isBuyer) {
+      toast.error('Please login as a buyer to chat with seller.');
+      router.push('/login');
+      return;
+    }
+
+    if (!sellerId) {
+      toast.error('Unable to identify store.');
+      return;
+    }
+
+    router.push(`/buyer-dashboard/messages?receiverId=${sellerId}`);
   };
 
   if (isLoading) {
@@ -141,6 +157,7 @@ const StorePage = () => {
               </div>
               <button
                 type="button"
+                onClick={handleChat}
                 className="group flex items-center gap-3 rounded-2xl bg-black px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl transition hover:bg-zinc-800 active:scale-95"
               >
                 <IoChatbubbleEllipsesOutline className="text-lg transition-transform group-hover:rotate-12" />

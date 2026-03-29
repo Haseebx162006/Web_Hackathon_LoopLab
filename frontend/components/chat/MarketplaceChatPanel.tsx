@@ -551,14 +551,14 @@ const MarketplaceChatPanel = ({
     <section className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-emerald-700">Marketplace Chat</p>
-          <h1 className="text-3xl font-black tracking-tight text-zinc-900 sm:text-4xl">{title}</h1>
-          <p className="mt-2 text-sm font-semibold text-zinc-600">{description}</p>
+          <p className="text-[10px] font-light uppercase tracking-[0.28em] text-emerald-700">Marketplace Chat</p>
+          <h1 className="text-3xl font-light tracking-tight text-zinc-900 sm:text-4xl">{title}</h1>
+          <p className="mt-2 text-sm font-light text-zinc-600">{description}</p>
         </div>
 
         <div className="flex items-center gap-3">
           <span
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-light uppercase tracking-[0.16em] ${
               socketConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-500'
             }`}
           >
@@ -578,7 +578,7 @@ const MarketplaceChatPanel = ({
                 void refetchMessages();
               }
             }}
-            className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700 transition hover:border-emerald-700 hover:bg-emerald-100"
+            className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-light uppercase tracking-[0.16em] text-emerald-700 transition hover:border-emerald-700 hover:bg-emerald-100"
           >
             <IoRefreshOutline className="text-sm" />
             Refresh
@@ -589,8 +589,8 @@ const MarketplaceChatPanel = ({
       {showRoleGate ? (
         <div className="rounded-[1.8rem] border border-zinc-200 bg-white p-8 text-center shadow-[0_14px_35px_-22px_rgba(0,0,0,0.25)]">
           <IoChatbubbleEllipsesOutline className="mx-auto text-4xl text-zinc-300" />
-          <h2 className="mt-3 text-xl font-black tracking-tight text-zinc-900">Authentication required</h2>
-          <p className="mt-2 text-sm font-semibold text-zinc-500">
+          <h2 className="mt-3 text-xl font-light tracking-tight text-zinc-900">Authentication required</h2>
+          <p className="mt-2 text-sm font-light text-zinc-500">
             Sign in as a {role} account to access marketplace conversations.
           </p>
         </div>
@@ -598,30 +598,30 @@ const MarketplaceChatPanel = ({
         <div className="grid grid-cols-1 gap-4 rounded-[1.8rem] border border-emerald-200/60 bg-[linear-gradient(160deg,#d9fdd3_0%,#f0f7f1_40%,#ffffff_100%)] p-4 xl:grid-cols-[340px_minmax(0,1fr)]">
           <aside className="rounded-[1.4rem] border border-zinc-200 bg-white p-3 shadow-[0_10px_24px_-18px_rgba(0,0,0,0.4)]">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-black uppercase tracking-[0.18em] text-zinc-600">Conversations</h2>
+              <h2 className="text-sm font-light uppercase tracking-[0.18em] text-zinc-600">Conversations</h2>
               {conversationsFetching ? (
-                <span className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-600">
+                <span className="text-[10px] font-light uppercase tracking-[0.14em] text-emerald-600">
                   Syncing...
                 </span>
               ) : null}
             </div>
 
             {conversationsLoading ? (
-              <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm font-semibold text-zinc-500">
+              <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm font-light text-zinc-500">
                 Loading conversations...
               </div>
             ) : null}
 
             {conversationsError ? (
-              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-light text-rose-700">
                 {normalizeApiError(conversationsRequestError, 'Unable to fetch conversations.')}
               </div>
             ) : null}
 
             {!conversationsLoading && !conversationsError && conversations.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-5 text-center">
-                <p className="text-sm font-semibold text-zinc-600">No conversations yet.</p>
-                <p className="mt-2 text-xs font-semibold text-zinc-400">
+                <p className="text-sm font-light text-zinc-600">No conversations yet.</p>
+                <p className="mt-2 text-xs font-light text-zinc-400">
                   Open chat from order context to start messaging.
                 </p>
               </div>
@@ -644,7 +644,7 @@ const MarketplaceChatPanel = ({
                   >
                     <div className="flex items-start gap-3">
                       <span
-                        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black ${
+                        className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-light ${
                           isSelected ? 'bg-white text-emerald-700' : 'bg-emerald-100 text-emerald-700'
                         }`}
                       >
@@ -653,27 +653,27 @@ const MarketplaceChatPanel = ({
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`truncate text-sm font-black ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
+                          <p className={`truncate text-sm font-light ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
                             {resolveCounterpartLabel(conversation, role)}
                           </p>
 
-                          <p className={`text-[10px] font-black uppercase tracking-[0.14em] ${isSelected ? 'text-emerald-50' : 'text-zinc-400'}`}>
+                          <p className={`text-[10px] font-light uppercase tracking-[0.14em] ${isSelected ? 'text-emerald-50' : 'text-zinc-400'}`}>
                             {formatClockTime(conversation.lastMessage.createdAt)}
                           </p>
                         </div>
 
-                        <p className={`mt-1 truncate text-xs font-semibold ${isSelected ? 'text-emerald-50' : 'text-zinc-500'}`}>
+                        <p className={`mt-1 truncate text-xs font-light ${isSelected ? 'text-emerald-50' : 'text-zinc-500'}`}>
                           {resolveCounterpartSubline(conversation, role)}
                         </p>
 
                         <div className="mt-2 flex items-center justify-between gap-2">
-                          <p className={`line-clamp-1 text-xs font-semibold ${isSelected ? 'text-emerald-50' : 'text-zinc-600'}`}>
+                          <p className={`line-clamp-1 text-xs font-light ${isSelected ? 'text-emerald-50' : 'text-zinc-600'}`}>
                             {resolveMessagePreview(conversation)}
                           </p>
 
                           {conversation.unreadCount > 0 ? (
                             <span
-                              className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                              className={`inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-light ${
                                 isSelected ? 'bg-white text-emerald-700' : 'bg-emerald-600 text-white'
                               }`}
                             >
@@ -684,7 +684,7 @@ const MarketplaceChatPanel = ({
 
                         {conversation.conversationResolved ? (
                           <span
-                            className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
+                            className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[9px] font-light uppercase tracking-[0.14em] ${
                               isSelected ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-700'
                             }`}
                           >
@@ -703,8 +703,8 @@ const MarketplaceChatPanel = ({
             {!selectedConversation && !canStartConversation ? (
               <div className="flex min-h-[620px] flex-col items-center justify-center bg-[#ece5dd] p-8 text-center">
                 <IoChatbubbleEllipsesOutline className="text-4xl text-zinc-400" />
-                <h2 className="mt-3 text-xl font-black tracking-tight text-zinc-900">Choose a conversation</h2>
-                <p className="mt-2 max-w-md text-sm font-semibold text-zinc-600">
+                <h2 className="mt-3 text-xl font-light tracking-tight text-zinc-900">Choose a conversation</h2>
+                <p className="mt-2 max-w-md text-sm font-light text-zinc-600">
                   Select an existing conversation, or open chat from an order to start messaging.
                 </p>
               </div>
@@ -712,7 +712,7 @@ const MarketplaceChatPanel = ({
               <div className="flex min-h-[620px] flex-col">
                 <header className="flex flex-wrap items-start justify-between gap-3 bg-[#075e54] px-4 py-3 text-white">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-sm font-black text-emerald-700">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-100 text-sm font-light text-emerald-700">
                       {selectedConversation
                         ? resolveCounterpartInitial(selectedConversation, role)
                         : role === 'buyer'
@@ -721,14 +721,14 @@ const MarketplaceChatPanel = ({
                     </span>
 
                     <div>
-                      <p className="text-sm font-black tracking-wide">
+                      <p className="text-sm font-light tracking-wide">
                         {selectedConversation
                           ? resolveCounterpartLabel(selectedConversation, role)
                           : role === 'buyer'
                             ? 'New seller conversation'
                             : 'New buyer conversation'}
                       </p>
-                      <p className="text-xs font-semibold text-emerald-100">
+                      <p className="text-xs font-light text-emerald-100">
                         {selectedConversation
                           ? resolveCounterpartSubline(selectedConversation, role)
                           : 'Send your first message to start this chat.'}
@@ -738,33 +738,33 @@ const MarketplaceChatPanel = ({
 
                   <div className="flex flex-wrap items-center gap-2">
                     {selectedConversation?.orderRef?._id ? (
-                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-white">
                         Order #{selectedConversation.orderRef._id.slice(-8)}
                       </span>
                     ) : initialOrderId ? (
-                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-white">
                         Order #{initialOrderId.slice(-8)}
                       </span>
                     ) : null}
 
                     {selectedConversation?.productRef?._id ? (
-                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-white">
                         Product: {selectedConversation.productRef.productName || 'Item'}
                       </span>
                     ) : null}
 
                     {selectedConversation ? (
                       selectedConversation.conversationResolved ? (
-                        <span className="rounded-full bg-emerald-200 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-800">
+                        <span className="rounded-full bg-emerald-200 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-emerald-800">
                           Resolved
                         </span>
                       ) : (
-                        <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-900">
+                        <span className="rounded-full bg-amber-200 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-amber-900">
                           Active
                         </span>
                       )
                     ) : (
-                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      <span className="rounded-full bg-white/20 px-2 py-1 text-[10px] font-light uppercase tracking-[0.14em] text-white">
                         New chat
                       </span>
                     )}
@@ -776,7 +776,7 @@ const MarketplaceChatPanel = ({
                           void handleResolveConversation();
                         }}
                         disabled={resolvingConversation}
-                        className="rounded-xl border border-white/40 bg-white/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-xl border border-white/40 bg-white/10 px-3 py-2 text-[10px] font-light uppercase tracking-[0.16em] text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {resolvingConversation ? 'Resolving...' : 'Resolve'}
                       </button>
@@ -788,13 +788,13 @@ const MarketplaceChatPanel = ({
                   {selectedConversation ? (
                     <>
                       {messagesLoading ? (
-                        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/95 p-4 text-sm font-semibold text-zinc-600">
+                        <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/95 p-4 text-sm font-light text-zinc-600">
                           Loading messages...
                         </div>
                       ) : null}
 
                       {messagesError ? (
-                        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">
+                        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-light text-rose-700">
                           {normalizeApiError(messagesRequestError, 'Unable to fetch messages.')}
                         </div>
                       ) : null}
@@ -802,7 +802,7 @@ const MarketplaceChatPanel = ({
                       {!messagesLoading && !messagesError ? (
                         <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
                           {messages.length === 0 ? (
-                            <div className="mx-auto max-w-md rounded-xl border border-dashed border-zinc-200 bg-white/90 p-4 text-center text-sm font-semibold text-zinc-600">
+                            <div className="mx-auto max-w-md rounded-xl border border-dashed border-zinc-200 bg-white/90 p-4 text-center text-sm font-light text-zinc-600">
                               No messages yet. Send the first message to begin.
                             </div>
                           ) : null}
@@ -829,7 +829,7 @@ const MarketplaceChatPanel = ({
                                 }`}
                               >
                                 <p
-                                  className={`text-[10px] font-black uppercase tracking-[0.16em] ${
+                                  className={`text-[10px] font-light uppercase tracking-[0.16em] ${
                                     isOwn ? 'text-emerald-700' : 'text-zinc-400'
                                   }`}
                                 >
@@ -837,7 +837,7 @@ const MarketplaceChatPanel = ({
                                 </p>
 
                                 {message.message ? (
-                                  <p className="mt-1 whitespace-pre-wrap text-sm font-semibold leading-relaxed">
+                                  <p className="mt-1 whitespace-pre-wrap text-sm font-light leading-relaxed">
                                     {message.message}
                                   </p>
                                 ) : null}
@@ -855,7 +855,7 @@ const MarketplaceChatPanel = ({
                                   </div>
                                 ) : null}
 
-                                <div className="mt-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.14em]">
+                                <div className="mt-2 flex items-center justify-end gap-2 text-[10px] font-light uppercase tracking-[0.14em]">
                                   <span className={isOwn ? 'text-emerald-700' : 'text-zinc-400'}>
                                     {formatClockTime(message.createdAt)}
                                   </span>
@@ -875,7 +875,7 @@ const MarketplaceChatPanel = ({
                           })}
 
                           {messagesFetching ? (
-                            <p className="text-center text-[10px] font-black uppercase tracking-[0.14em] text-zinc-500">
+                            <p className="text-center text-[10px] font-light uppercase tracking-[0.14em] text-zinc-500">
                               Syncing messages...
                             </p>
                           ) : null}
@@ -887,10 +887,10 @@ const MarketplaceChatPanel = ({
                     <div className="flex h-full min-h-[420px] items-center justify-center">
                       <div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white/95 p-5 text-center shadow-sm">
                         <IoChatbubbleEllipsesOutline className="mx-auto text-4xl text-emerald-500" />
-                        <h3 className="mt-3 text-lg font-black tracking-tight text-zinc-900">
+                        <h3 className="mt-3 text-lg font-light tracking-tight text-zinc-900">
                           Start a new conversation
                         </h3>
-                        <p className="mt-2 text-sm font-semibold text-zinc-600">
+                        <p className="mt-2 text-sm font-light text-zinc-600">
                           Send your first message now. This chat will appear in the conversation list instantly.
                         </p>
                       </div>
@@ -904,7 +904,7 @@ const MarketplaceChatPanel = ({
                       {attachments.map((file, index) => (
                         <div
                           key={`${file.name}-${index}`}
-                          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-semibold text-zinc-600"
+                          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-light text-zinc-600"
                         >
                           <IoImageOutline className="text-sm text-emerald-600" />
                           <span className="max-w-[140px] truncate">{file.name}</span>

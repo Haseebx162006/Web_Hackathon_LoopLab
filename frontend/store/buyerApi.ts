@@ -123,6 +123,26 @@ export interface BuyerShippingAddress {
   zipCode: string;
 }
 
+export interface BuyerAddress extends BuyerShippingAddress {
+  _id: string;
+  label?: string;
+  isDefault: boolean;
+  lat?: number;
+  lng?: number;
+}
+
+export interface BuyerProfile {
+  _id: string;
+  email: string;
+  name?: string;
+  phoneNumber?: string;
+  addresses: BuyerAddress[];
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BuyerOrderItem {
   _id?: string;
   product: BuyerProduct | string | null;
@@ -384,6 +404,45 @@ export const buyerApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
+
+    getBuyerProfile: builder.query<ApiResponse<BuyerProfile>, void>({
+      query: () => '/buyer/profile',
+      providesTags: ['BuyerProfile'],
+    }),
+
+    updateBuyerProfile: builder.mutation<ApiResponse<BuyerProfile>, Partial<BuyerProfile>>({
+      query: (body) => ({
+        url: '/buyer/profile',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['BuyerProfile'],
+    }),
+
+    addBuyerAddress: builder.mutation<ApiResponse<BuyerAddress[]>, Partial<BuyerAddress>>({
+      query: (body) => ({
+        url: '/buyer/addresses',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['BuyerProfile'],
+    }),
+
+    removeBuyerAddress: builder.mutation<ApiResponse<BuyerAddress[]>, string>({
+      query: (id) => ({
+        url: `/buyer/addresses/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['BuyerProfile'],
+    }),
+
+    setBuyerDefaultAddress: builder.mutation<ApiResponse<BuyerAddress[]>, string>({
+      query: (id) => ({
+        url: `/buyer/addresses/${id}/default`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['BuyerProfile'],
+    }),
   }),
   overrideExisting: true,
 });
@@ -407,4 +466,9 @@ export const {
   useRequestBuyerOrderReturnMutation,
   useAddBuyerReviewMutation,
   useSendBuyerSupportMessageMutation,
+  useGetBuyerProfileQuery,
+  useUpdateBuyerProfileMutation,
+  useAddBuyerAddressMutation,
+  useRemoveBuyerAddressMutation,
+  useSetBuyerDefaultAddressMutation,
 } = buyerApi;

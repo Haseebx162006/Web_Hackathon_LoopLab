@@ -41,10 +41,12 @@ import {
   useCreateSellerProductMutation,
   useDeleteSellerProductMutation,
   useGetSellerProductsQuery,
+  useSuggestDynamicPriceMutation,
   useUpdateSellerProductMutation,
   useUploadProductImagesMutation,
   useGetSellerCouponsQuery,
   type SellerProduct,
+  type SellerPricingSuggestionData,
   type SellerProductPayload,
 } from '@/store/sellerApi';
 import { formatCurrency, formatDateTime, normalizeApiError } from '@/utils/sellerUtils';
@@ -97,6 +99,8 @@ const ProductManagementPage = () => {
   const [bulkErrors, setBulkErrors] = useState<BulkImportMessage[]>([]);
   const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null, null]);
   const [selectedCoupon, setSelectedCoupon] = useState<string | null>(null);
+  const [pricingSuggestion, setPricingSuggestion] = useState<SellerPricingSuggestionData | null>(null);
+  const [pricingSuggestionSnapshot, setPricingSuggestionSnapshot] = useState<string | null>(null);
 
   const {
     data: productsResponse,
@@ -111,6 +115,7 @@ const ProductManagementPage = () => {
   const coupons = couponsResponse?.data ?? [];
 
   const [createProduct, { isLoading: creating }] = useCreateSellerProductMutation();
+  const [suggestDynamicPrice, { isLoading: suggestingPrice }] = useSuggestDynamicPriceMutation();
   const [updateProduct, { isLoading: updating }] = useUpdateSellerProductMutation();
   const [deleteProduct, { isLoading: deleting }] = useDeleteSellerProductMutation();
   const [uploadImages, { isLoading: uploadingImages }] = useUploadProductImagesMutation();
@@ -131,6 +136,19 @@ const ProductManagementPage = () => {
     });
   }, [products, searchQuery, selectedCategory]);
 
+  const currentPricingSnapshot = useMemo(() => {
+    return [
+      formState.productName.trim().toLowerCase(),
+      formState.category.trim().toLowerCase(),
+      formState.price.trim(),
+      formState.stockQuantity.trim(),
+    ].join('|');
+  }, [formState.category, formState.price, formState.productName, formState.stockQuantity]);
+
+  const isPricingSuggestionStale = Boolean(
+    pricingSuggestion && pricingSuggestionSnapshot && pricingSuggestionSnapshot !== currentPricingSnapshot
+  );
+
   const submitting = creating || updating || uploadingImages;
 
   const resetForm = () => {
@@ -139,6 +157,8 @@ const ProductManagementPage = () => {
     setFormError(null);
     setImageFiles([null, null, null, null, null]);
     setSelectedCoupon(null);
+    setPricingSuggestion(null);
+    setPricingSuggestionSnapshot(null);
   };
 
   const handleOpenCreate = () => {
@@ -161,7 +181,55 @@ const ProductManagementPage = () => {
     });
     setFormError(null);
     setImageFiles([null, null, null, null, null]);
+    setPricingSuggestion(null);
+    setPricingSuggestionSnapshot(null);
     setIsFormOpen(true);
+  };
+
+  const handleSuggestPrice = async () => {
+    const productName = formState.productName.trim();
+    const category = formState.category.trim();
+
+    if (!productName) {
+      toast.error('Enter product name before requesting a suggestion.');
+      return;
+    }
+
+    if (!category) {
+      toast.error('Select a category before requesting a suggestion.');
+      return;
+    }
+
+    const inputPrice = Number(formState.price);
+    if (Number.isNaN(inputPrice) || inputPrice < 0) {
+      toast.error('Enter a valid base valuation before requesting a suggestion.');
+      return;
+    }
+
+    const stockQuantityValue = Number(formState.stockQuantity);
+    const stockQuantity = Number.isInteger(stockQuantityValue) && stockQuantityValue >= 0
+      ? stockQuantityValue
+      : undefined;
+
+    try {
+      const suggestionResponse = await suggestDynamicPrice({
+        productName,
+        category,
+        inputPrice,
+        stockQuantity,
+      }).unwrap();
+
+      setPricingSuggestion(suggestionResponse.data);
+      setPricingSuggestionSnapshot(currentPricingSnapshot);
+
+      if (suggestionResponse.data.warning) {
+        toast(suggestionResponse.data.warning);
+      } else {
+        toast.success('Pricing suggestion ready');
+      }
+    } catch (requestError) {
+      toast.error(normalizeApiError(requestError, 'Unable to fetch pricing suggestion right now.'));
+    }
   };
 
   const validateAndBuildPayload = (): SellerProductPayload | null => {
@@ -232,6 +300,9 @@ const ProductManagementPage = () => {
       } else {
         const created = await createProduct(payload).unwrap();
         productId = created.data._id;
+        if (created.pricingSuggestion?.warning) {
+          toast(created.pricingSuggestion.warning);
+        }
         toast.success('Product created successfully');
       }
 
@@ -763,6 +834,68 @@ const ProductManagementPage = () => {
               onChange={(event) => setFormState((prev) => ({ ...prev, stockQuantity: event.target.value }))}
               required
             />
+          </div>
+
+          <div className="rounded-3xl border border-brand-purple/15 bg-brand-purple/5 p-4 space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-brand-purple">Dynamic Price Intelligence</p>
+                <p className="text-xs font-light text-zinc-500 mt-1">
+                  Use AI-backed market signals to choose a stronger price before saving.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSuggestPrice}
+                disabled={suggestingPrice}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-black px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <IoPricetagOutline className="text-sm" />
+                {suggestingPrice ? 'Analyzing...' : 'Get Suggestion'}
+              </button>
+            </div>
+
+            {pricingSuggestion ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-zinc-100 bg-white px-4 py-3">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Recommended</p>
+                    <p className="mt-1 text-sm font-light text-black">{formatCurrency(pricingSuggestion.recommendedPrice)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-100 bg-white px-4 py-3">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Minimum</p>
+                    <p className="mt-1 text-sm font-light text-black">{formatCurrency(pricingSuggestion.minPrice)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-zinc-100 bg-white px-4 py-3">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">Maximum</p>
+                    <p className="mt-1 text-sm font-light text-black">{formatCurrency(pricingSuggestion.maxPrice)}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-100 bg-white px-4 py-3 space-y-2">
+                  <p className="text-xs font-light text-zinc-600">{pricingSuggestion.reason}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                    Confidence: {Math.round(pricingSuggestion.confidence * 100)}% • Source: {pricingSuggestion.source}
+                  </p>
+
+                  {pricingSuggestion.warning ? (
+                    <p className="text-xs font-semibold text-rose-500">{pricingSuggestion.warning}</p>
+                  ) : (
+                    <p className="text-xs font-semibold text-emerald-600">Current price is within the suggested range.</p>
+                  )}
+
+                  {isPricingSuggestionStale ? (
+                    <p className="text-xs font-semibold text-amber-600">
+                      Inputs changed after this suggestion. Generate a new suggestion for the latest values.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs font-light text-zinc-500">
+                Fill product name, category, and base valuation, then click Get Suggestion.
+              </p>
+            )}
           </div>
 
           <SellerTextarea

@@ -173,6 +173,26 @@ export interface SellerStoreFaq {
   answer: string;
 }
 
+export interface SellerPricingSuggestionPayload {
+  productName: string;
+  category: string;
+  inputPrice?: number;
+  price?: number;
+  costPrice?: number;
+  stockQuantity?: number;
+}
+
+export interface SellerPricingSuggestionData {
+  recommendedPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  confidence: number;
+  reason: string;
+  warning: string | null;
+  priceStatus: 'high' | 'low' | 'ok' | 'unknown';
+  source: 'ai' | 'fallback';
+}
+
 export interface SellerProductPayload {
   productName: string;
   description: string;
@@ -256,6 +276,10 @@ interface ApiDataResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+}
+
+export interface SellerCreateProductResponse extends ApiDataResponse<SellerProduct> {
+  pricingSuggestion?: SellerPricingSuggestionData | null;
 }
 
 interface ApiListResponse<T> {
@@ -358,7 +382,7 @@ export const sellerApi = apiSlice.injectEndpoints({
       },
     }),
 
-    createSellerProduct: builder.mutation<ApiDataResponse<SellerProduct>, SellerProductPayload>({
+    createSellerProduct: builder.mutation<SellerCreateProductResponse, SellerProductPayload>({
       query: (body) => ({
         url: '/seller/products',
         method: 'POST',
@@ -366,6 +390,16 @@ export const sellerApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: 'SellerProduct', id: 'LIST' }, 'SellerInventory', 'SellerDashboard'],
     }),
+
+    suggestDynamicPrice: builder.mutation<ApiDataResponse<SellerPricingSuggestionData>, SellerPricingSuggestionPayload>(
+      {
+        query: (body) => ({
+          url: '/pricing/suggest',
+          method: 'POST',
+          body,
+        }),
+      }
+    ),
 
     updateSellerProduct: builder.mutation<
       ApiDataResponse<SellerProduct>,
@@ -562,6 +596,7 @@ export const {
   useGetSellerDashboardQuery,
   useGetSellerProductsQuery,
   useCreateSellerProductMutation,
+  useSuggestDynamicPriceMutation,
   useUpdateSellerProductMutation,
   useDeleteSellerProductMutation,
   useBulkUploadProductsMutation,

@@ -23,6 +23,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const supportRoutes = require('./src/routes/supportRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
+const pricingRoutes = require('./src/routes/pricingRoutes');
 
 const errorHandler = require('./src/middleware/errorMiddleware');
 const { limiter } = require('./src/middleware/rateLimiter');
@@ -64,6 +65,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

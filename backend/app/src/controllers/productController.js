@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
+const logger = require('../utils/logger');
 const { uploadImage } = require('../utils/cloudinary');
+const { getDynamicPriceSuggestion } = require('../services/pricingService');
+const { validatePrice, toNonNegativeNumber } = require('../utils/pricingUtils');
 const {
   productCreateSchema,
   productUpdateSchema,
@@ -278,16 +281,54 @@ function handleDuplicateSku(err, res, next) {
   return next(err);
 }
 
+const getCostPriceFromRequest = (req) => {
+  const rawCostPrice = req?.body?.costPrice;
+  return toNonNegativeNumber(rawCostPrice);
+};
+
 
 // Product Crud
 const createProduct = async (req, res, next) => {
   try {
     const body = productCreateSchema.parse(req.body);
+
+    let pricingSuggestion = null;
+    try {
+      pricingSuggestion = await getDynamicPriceSuggestion({
+        productName: body.productName,
+        category: body.category,
+        inputPrice: body.price,
+        costPrice: getCostPriceFromRequest(req),
+        stockQuantity: body.stockQuantity,
+      });
+    } catch (pricingError) {
+      logger.warn('Product pricing suggestion failed', {
+        sellerId: String(sellerId(req)),
+        skuCode: body.skuCode,
+        message: pricingError?.message || 'Unknown pricing suggestion error',
+      });
+    }
+
     const product = await Product.create({
       ...body,
       sellerId: sellerId(req),
     });
-    res.status(201).json({ success: true, data: product });
+
+    const priceCheck = pricingSuggestion
+      ? validatePrice(body.price, pricingSuggestion)
+      : { status: 'unknown', warning: null };
+
+    res.status(201).json({
+      success: true,
+      data: product,
+      pricingSuggestion: pricingSuggestion
+        ? {
+            ...pricingSuggestion,
+            warning: priceCheck.warning,
+            priceStatus: priceCheck.status,
+          }
+        : null,
+    });
   } catch (err) {
     if (err.code === 11000) {
       res.status(400);

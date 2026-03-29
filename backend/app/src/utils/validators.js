@@ -246,6 +246,18 @@ const autocompleteQuerySchema = z.object({
   q: z.string().min(1, 'Search query is required').max(100, 'Query too long').trim(),
 });
 
+const pricingSuggestionSchema = z.object({
+  productName: z.string().min(1, 'Product name is required').max(200),
+  category: z.string().min(1, 'Category is required').max(120),
+  inputPrice: z.coerce.number().nonnegative().optional(),
+  price: z.coerce.number().nonnegative().optional(),
+  costPrice: z.coerce.number().nonnegative().optional(),
+  stockQuantity: z.coerce.number().int().nonnegative().optional(),
+}).refine((data) => data.inputPrice !== undefined || data.price !== undefined || data.costPrice !== undefined, {
+  message: 'At least one of inputPrice, price, or costPrice is required',
+  path: ['inputPrice'],
+});
+
 const objectIdPattern = /^[a-fA-F0-9]{24}$/;
 
 const queryBooleanSchema = z.preprocess((value) => {
@@ -367,6 +379,7 @@ module.exports = {
   adminPaymentsQuerySchema,
   adminAnalyticsQuerySchema,
   autocompleteQuerySchema,
+  pricingSuggestionSchema,
   chatConversationParamSchema,
   chatConversationQuerySchema,
   chatMessageHistoryQuerySchema,

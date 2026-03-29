@@ -15,6 +15,13 @@ export interface BuyerSellerSummary {
   _id?: string;
   storeName?: string;
   storeLogo?: string;
+  storeFaqs?: BuyerStoreFaq[];
+}
+
+export interface BuyerStoreFaq {
+  _id?: string;
+  question: string;
+  answer: string;
 }
 
 export interface BuyerStore {

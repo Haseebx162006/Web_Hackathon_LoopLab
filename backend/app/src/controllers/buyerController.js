@@ -148,7 +148,7 @@ const getProductDetails = async (req, res, next) => {
       return next(new Error('Invalid product id'));
     }
 
-    const product = await Product.findById(id).populate('sellerId', 'storeName storeLogo');
+    const product = await Product.findById(id).populate('sellerId', 'storeName storeLogo storeFaqs');
     if (!product || !statuses.includes(product.status)) {
       res.status(404);
       return next(new Error('Product not found'));

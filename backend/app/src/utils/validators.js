@@ -142,10 +142,16 @@ const analyticsQuerySchema = z
     path: ['endDate'],
   });
 
+const sellerFaqEntrySchema = z.object({
+  question: z.string().trim().min(1, 'FAQ question is required').max(200),
+  answer: z.string().trim().min(1, 'FAQ answer is required').max(1200),
+});
+
 const sellerProfileUpdateSchema = z.object({
   storeName: z.string().max(120).optional(),
   ownerName: z.string().max(120).optional(),
   storeDescription: z.string().max(10000).optional(),
+  storeFaqs: z.array(sellerFaqEntrySchema).max(30, 'Maximum 30 FAQs are allowed').optional(),
   bankDetails: z.string().max(500).optional(),
   bankAccountHolderName: z.string().max(200).optional(),
   bankName: z.string().max(200).optional(),

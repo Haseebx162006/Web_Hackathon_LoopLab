@@ -63,6 +63,12 @@ const userSchema = new mongoose.Schema(
 
     storeLogo: { type: String, trim: true },
     storeDescription: { type: String, trim: true },
+    storeFaqs: [
+      {
+        question: { type: String, trim: true },
+        answer: { type: String, trim: true },
+      },
+    ],
     contactDetails: {
       phone: { type: String, trim: true },
       email: { type: String, trim: true },

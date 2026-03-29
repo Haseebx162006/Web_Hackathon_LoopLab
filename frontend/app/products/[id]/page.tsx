@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
@@ -18,6 +18,11 @@ import {
   useGetBuyerOrdersQuery,
   useRemoveFromBuyerWishlistMutation,
 } from '@/store/buyerApi';
+import {
+  type SellerStoreFaq,
+  useGetSellerProfileQuery,
+  useUpdateSellerProfileMutation,
+} from '@/store/sellerApi';
 import BuyerErrorState from '@/components/buyer/BuyerErrorState';
 import BuyerLoader from '@/components/buyer/BuyerLoader';
 import BuyerPageShell from '@/components/buyer/BuyerPageShell';
@@ -34,18 +39,36 @@ import {
   normalizeApiError,
 } from '@/utils/buyerUtils';
 
+const normalizeStoreFaqs = (storeFaqs: Array<Partial<SellerStoreFaq>> | undefined): SellerStoreFaq[] => {
+  if (!Array.isArray(storeFaqs)) {
+    return [];
+  }
+
+  return storeFaqs
+    .map((faq) => ({
+      _id: faq._id,
+      question: String(faq.question ?? '').trim(),
+      answer: String(faq.answer ?? '').trim(),
+    }))
+    .filter((faq) => faq.question.length > 0 && faq.answer.length > 0);
+};
+
 const ProductDetailPage = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const productId = Array.isArray(params.id) ? params.id[0] : params.id;
 
-  const { role, isAuthenticated } = useSelector((state: RootState) => state.auth);
+  const { role, isAuthenticated, user } = useSelector((state: RootState) => state.auth);
   const isBuyer = (role === 'buyer' && isAuthenticated) || isBuyerAuthenticated();
+  const isSellerSession = role === 'seller' && isAuthenticated;
 
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [storeFaqs, setStoreFaqs] = useState<SellerStoreFaq[]>([]);
+  const [faqQuestion, setFaqQuestion] = useState('');
+  const [faqAnswer, setFaqAnswer] = useState('');
 
   const {
     data: detailsResponse,
@@ -72,11 +95,50 @@ const ProductDetailPage = () => {
 
   const { data: wishlistResponse } = useGetBuyerWishlistQuery(undefined, { skip: !isBuyer });
   const { data: ordersResponse } = useGetBuyerOrdersQuery(undefined, { skip: !isBuyer });
+  const { data: sellerProfileResponse } = useGetSellerProfileQuery(undefined, {
+    skip: !isSellerSession,
+  });
 
   const [addToCart, { isLoading: addingToCart }] = useAddToBuyerCartMutation();
   const [addToWishlist] = useAddToBuyerWishlistMutation();
   const [removeFromWishlist] = useRemoveFromBuyerWishlistMutation();
   const [addReview, { isLoading: submittingReview }] = useAddBuyerReviewMutation();
+  const [updateSellerProfile, { isLoading: updatingStoreProfile }] = useUpdateSellerProfileMutation();
+
+  const sellerInfo = useMemo(() => {
+    if (!product || typeof product.sellerId !== 'object' || !product.sellerId) {
+      return null;
+    }
+
+    return product.sellerId as {
+      _id?: string;
+      storeName?: string;
+      storeLogo?: string;
+      storeFaqs?: SellerStoreFaq[];
+    };
+  }, [product]);
+
+  const productSellerId =
+    sellerInfo?._id ?? (typeof product?.sellerId === 'string' ? product.sellerId : undefined);
+  const viewerSellerId = user?._id || sellerProfileResponse?.data?._id;
+  const isStoreOwner = Boolean(
+    isSellerSession && productSellerId && viewerSellerId && productSellerId === viewerSellerId
+  );
+
+  useEffect(() => {
+    const nextFaqs = normalizeStoreFaqs(sellerInfo?.storeFaqs);
+
+    setStoreFaqs((previousFaqs) => {
+      const previousSnapshot = JSON.stringify(
+        previousFaqs.map((faq) => ({ _id: faq._id, question: faq.question, answer: faq.answer }))
+      );
+      const nextSnapshot = JSON.stringify(
+        nextFaqs.map((faq) => ({ _id: faq._id, question: faq.question, answer: faq.answer }))
+      );
+
+      return previousSnapshot === nextSnapshot ? previousFaqs : nextFaqs;
+    });
+  }, [sellerInfo?.storeFaqs]);
 
   const wishedIds = useMemo(() => {
     const items = wishlistResponse?.data?.items ?? [];
@@ -180,17 +242,60 @@ const ProductDetailPage = () => {
       return;
     }
 
-    const sellerId =
-      typeof product?.sellerId === 'object'
-        ? (product.sellerId as { _id?: string })._id
-        : product?.sellerId;
-
-    if (!sellerId) {
+    if (!productSellerId) {
       toast.error('Unable to identify store owner.');
       return;
     }
 
-    router.push(`/buyer-dashboard/messages?receiverId=${sellerId}&productId=${product._id}`);
+    router.push(`/buyer-dashboard/messages?receiverId=${productSellerId}&productId=${product._id}`);
+  };
+
+  const persistStoreFaqs = async (nextFaqs: SellerStoreFaq[], successMessage: string) => {
+    if (!isStoreOwner) {
+      toast.error('Only this store owner can edit these FAQs.');
+      return false;
+    }
+
+    if (nextFaqs.length > 30) {
+      toast.error('You can add up to 30 FAQs only.');
+      return false;
+    }
+
+    try {
+      await updateSellerProfile({ storeFaqs: nextFaqs }).unwrap();
+      setStoreFaqs(nextFaqs);
+      toast.success(successMessage);
+      void refetch();
+      return true;
+    } catch (mutationError) {
+      toast.error(normalizeApiError(mutationError, 'Unable to update store FAQs.'));
+      return false;
+    }
+  };
+
+  const handleAddStoreFaq = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const question = faqQuestion.trim();
+    const answer = faqAnswer.trim();
+
+    if (!question || !answer) {
+      toast.error('Please provide both a question and an answer.');
+      return;
+    }
+
+    const nextFaqs: SellerStoreFaq[] = [...storeFaqs, { question, answer }];
+    const updated = await persistStoreFaqs(nextFaqs, 'Store FAQ added.');
+
+    if (updated) {
+      setFaqQuestion('');
+      setFaqAnswer('');
+    }
+  };
+
+  const handleDeleteStoreFaq = async (index: number) => {
+    const nextFaqs = storeFaqs.filter((_, faqIndex) => faqIndex !== index);
+    await persistStoreFaqs(nextFaqs, 'Store FAQ deleted.');
   };
 
   if (isLoading) {
@@ -218,10 +323,13 @@ const ProductDetailPage = () => {
   const discountPercent = getDiscountPercent(product);
   const stock = getStockValue(product);
   const isWished = wishedIds.has(product._id);
+  const storeHref = productSellerId ? `/stores/${productSellerId}` : '/stores';
 
   return (
     <BuyerPageShell>
-      <div className="mx-auto max-w-7xl pt-12 md:pt-16 lg:pt-20">
+      <div className="relative mx-auto max-w-7xl pt-12 md:pt-16 lg:pt-20">
+        <div className="pointer-events-none absolute -left-20 top-8 h-56 w-56 rounded-full bg-amber-100/60 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 top-40 h-56 w-56 rounded-full bg-emerald-100/70 blur-3xl" />
         {/* Main Product Section: Asymmetrical Layout */}
         <section className="grid grid-cols-1 gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start group/main">
           {/* Left Side: Sophisticated Gallery Stage */}
@@ -344,28 +452,28 @@ const ProductDetailPage = () => {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 border border-zinc-100">
-                    {typeof product.sellerId === 'object' && (product.sellerId as any).storeLogo ? (
-                      <img 
-                        src={(product.sellerId as any).storeLogo} 
-                        alt="Store Logo" 
-                        className="h-full w-full object-cover" 
+                    {sellerInfo?.storeLogo ? (
+                      <img
+                        src={sellerInfo.storeLogo}
+                        alt="Store Logo"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <span className="text-2xl font-black text-zinc-300 uppercase">
-                        {(typeof product.sellerId === 'object' ? (product.sellerId as any).storeName?.[0] : 'S') || 'S'}
+                        {sellerInfo?.storeName?.[0] || 'S'}
                       </span>
                     )}
                   </div>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Brand Boutique</p>
                     <h3 className="text-xl font-black uppercase tracking-tight text-zinc-900">
-                      {typeof product.sellerId === 'object' ? (product.sellerId as any).storeName || 'Verified Store' : 'Verified Store'}
+                      {sellerInfo?.storeName || 'Verified Store'}
                     </h3>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/stores/${typeof product.sellerId === 'object' ? (product.sellerId as any)._id : product.sellerId}`}
+                    href={storeHref}
                     className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
                   >
                     Visit Store
@@ -379,6 +487,97 @@ const ProductDetailPage = () => {
                     Chat
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[2.5rem] border border-zinc-100 bg-gradient-to-br from-amber-50 via-white to-emerald-50 p-6 shadow-[0_30px_80px_-60px_rgba(0,0,0,0.9)]">
+              <div className="pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full bg-amber-200/70 blur-3xl" />
+              <div className="pointer-events-none absolute -left-12 -bottom-12 h-36 w-36 rounded-full bg-emerald-200/70 blur-3xl" />
+
+              <div className="relative space-y-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-[0.28em] text-zinc-500">Store FAQs</p>
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-zinc-900">Ask Before You Buy</h3>
+                  </div>
+                  <span className="rounded-full border border-zinc-200 bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-zinc-600">
+                    {storeFaqs.length} {storeFaqs.length === 1 ? 'Answer' : 'Answers'}
+                  </span>
+                </div>
+
+                {storeFaqs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/70 p-4">
+                    <p className="text-xs font-semibold leading-relaxed text-zinc-500">
+                      This store has not added FAQs yet. You can still message the seller for specific details.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {storeFaqs.map((faq, index) => (
+                      <article
+                        key={faq._id ?? `${faq.question}-${index}`}
+                        className="rounded-2xl border border-zinc-100 bg-white/90 p-4 shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-black leading-snug text-zinc-900">
+                            <span className="mr-1 text-emerald-600">Q.</span>
+                            {faq.question}
+                          </p>
+                          {isStoreOwner && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleDeleteStoreFaq(index);
+                              }}
+                              disabled={updatingStoreProfile}
+                              className="shrink-0 rounded-lg border border-rose-200 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-rose-700 transition hover:bg-rose-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs font-semibold leading-relaxed text-zinc-600">
+                          <span className="mr-1 font-black text-amber-600">A.</span>
+                          {faq.answer}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                {isStoreOwner && (
+                  <form onSubmit={handleAddStoreFaq} className="space-y-3 rounded-2xl border border-zinc-200 bg-white/80 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                      Manage your store FAQs for this product page
+                    </p>
+                    <input
+                      type="text"
+                      value={faqQuestion}
+                      onChange={(event) => setFaqQuestion(event.target.value)}
+                      placeholder="FAQ question"
+                      maxLength={200}
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none transition focus:border-zinc-400"
+                    />
+                    <textarea
+                      value={faqAnswer}
+                      onChange={(event) => setFaqAnswer(event.target.value)}
+                      placeholder="FAQ answer"
+                      rows={3}
+                      maxLength={1200}
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none transition focus:border-zinc-400"
+                    />
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-[10px] font-bold text-zinc-500">{storeFaqs.length}/30 FAQs used</p>
+                      <button
+                        type="submit"
+                        disabled={updatingStoreProfile || storeFaqs.length >= 30}
+                        className="rounded-xl bg-zinc-900 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                      >
+                        {updatingStoreProfile ? 'Saving...' : 'Add FAQ'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           </div>

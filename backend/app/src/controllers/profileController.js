@@ -90,12 +90,26 @@ const parseContactDetails = (raw) => {
   return undefined;
 };
 
+const parseStoreFaqs = (raw) => {
+  if (raw == null || raw === '') return undefined;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return raw;
+};
+
 const updateProfile = async (req, res, next) => {
   try {
     const body = {
       storeName: req.body.storeName,
       ownerName: req.body.ownerName,
       storeDescription: req.body.storeDescription,
+      storeFaqs: parseStoreFaqs(req.body.storeFaqs),
       contactDetails: parseContactDetails(req.body.contactDetails),
       bankDetails: req.body.bankDetails,
       bankAccountHolderName: req.body.bankAccountHolderName,
@@ -118,6 +132,10 @@ const updateProfile = async (req, res, next) => {
 
     if (parsed.storeDescription !== undefined) {
       user.storeDescription = parsed.storeDescription;
+    }
+
+    if (parsed.storeFaqs !== undefined) {
+      user.storeFaqs = parsed.storeFaqs;
     }
 
     if (parsed.storeName !== undefined) {

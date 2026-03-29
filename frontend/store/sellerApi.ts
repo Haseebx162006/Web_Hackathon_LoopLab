@@ -159,6 +159,13 @@ export interface SellerProfile {
     phone?: string;
     email?: string;
   };
+  storeFaqs?: SellerStoreFaq[];
+}
+
+export interface SellerStoreFaq {
+  _id?: string;
+  question: string;
+  answer: string;
 }
 
 export interface SellerProductPayload {
@@ -221,6 +228,7 @@ export interface SellerProfileUpdatePayload {
   storeName?: string;
   ownerName?: string;
   storeDescription?: string;
+  storeFaqs?: SellerStoreFaq[];
   bankDetails?: string;
   bankAccountHolderName?: string;
   bankName?: string;
@@ -289,6 +297,9 @@ const buildProfileFormData = (payload: SellerProfileUpdatePayload) => {
   }
   if (payload.storeDescription !== undefined) {
     formData.append('storeDescription', payload.storeDescription);
+  }
+  if (payload.storeFaqs !== undefined) {
+    formData.append('storeFaqs', JSON.stringify(payload.storeFaqs));
   }
   if (payload.bankDetails !== undefined) {
     formData.append('bankDetails', payload.bankDetails);

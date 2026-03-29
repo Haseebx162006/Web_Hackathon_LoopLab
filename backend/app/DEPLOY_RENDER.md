@@ -107,3 +107,6 @@ Then redeploy frontend.
 - `Mongo connection failed`: verify `MONGODB_URI` and network access/IP allowlist in Atlas.
 - `401 invalid token`: ensure same `JWT_SECRET` is used by all running instances.
 - OAuth redirect mismatch: update provider callback URL and Render callback env vars.
+- Render deploy shows an old commit hash: run `Manual Deploy` -> `Clear build cache & deploy` and confirm the deploy log checkout commit matches your latest GitHub commit on `main`.
+- Render uses Node 22 unexpectedly: set `NODE_VERSION=20` in Render env vars (or deploy via `render.yaml` that pins Node 20).
+- `Cannot find module` on Render but works on Windows: verify import path casing matches file casing exactly; Linux is case-sensitive.

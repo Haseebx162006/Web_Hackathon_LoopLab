@@ -18,6 +18,7 @@ interface BuyerProductCardProps {
   onToggleWishlist?: (product: BuyerProduct) => void;
   wished?: boolean;
   compact?: boolean;
+  blobColor?: string;
 }
 
 const BuyerProductCard = ({
@@ -26,6 +27,7 @@ const BuyerProductCard = ({
   onToggleWishlist,
   wished = false,
   compact = false,
+  blobColor = '#D4A5FF',
 }: BuyerProductCardProps) => {
   const effectivePrice = getEffectivePrice(product);
   const discountPercent = getDiscountPercent(product);
@@ -33,9 +35,18 @@ const BuyerProductCard = ({
   const rating = typeof product.rating === 'number' ? product.rating : 0;
 
   return (
-    <article className="group relative overflow-hidden rounded-[2.4rem] border border-zinc-100 bg-white/90 p-4 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.4)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_28px_54px_-26px_rgba(0,0,0,0.5)]">
-      <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-[#D4A5FF]/30 blur-[75px] transition group-hover:bg-[#FFB7CE]/35" />
-      <div className="pointer-events-none absolute -bottom-20 -right-16 h-44 w-44 rounded-full bg-[#FFB7CE]/20 blur-[80px]" />
+    <article 
+      className="group relative overflow-hidden rounded-[2.4rem] border border-zinc-100 p-4 shadow-[0_18px_42px_-24px_rgba(0,0,0,0.4)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_28px_54px_-26px_rgba(0,0,0,0.5)]"
+      style={{ backgroundColor: `${blobColor}0D` }} // 5% opacity for faint ambient tint
+    >
+      <div 
+        className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full blur-[75px] transition group-hover:opacity-80" 
+        style={{ backgroundColor: `${blobColor}4D` }} // 30% opacity
+      />
+      <div 
+        className="pointer-events-none absolute -bottom-20 -right-16 h-44 w-44 rounded-full blur-[80px] transition group-hover:opacity-60"
+        style={{ backgroundColor: `${blobColor}33` }} // 20% opacity
+      />
 
       <div className={`relative overflow-hidden rounded-[1.9rem] ${compact ? 'h-44' : 'h-64'} bg-[radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.95),rgba(244,244,245,0.82)_60%,rgba(228,228,231,0.7))]`}>
         <img
@@ -76,7 +87,7 @@ const BuyerProductCard = ({
         <div className="flex items-start justify-between gap-3">
           <Link
             href={`/products/${product._id}`}
-            className={`line-clamp-2 font-black uppercase italic leading-[0.92] tracking-tight text-zinc-900 transition hover:text-zinc-600 ${compact ? 'text-xl' : 'text-2xl'}`}
+            className={`line-clamp-2.5 font-black uppercase italic leading-[0.99] tracking-tight text-zinc-900 transition hover:text-zinc-600 ${compact ? 'text-xl' : 'text-2xl'}`}
           >
             {product.productName}
           </Link>
@@ -107,24 +118,19 @@ const BuyerProductCard = ({
         <div className="grid grid-cols-2 gap-2">
           <Link
             href={`/products/${product._id}`}
-            className={`inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 ${
-              onAddToCart ? '' : 'col-span-2'
-            }`}
+            className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white py-3 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:border-black hover:bg-zinc-50"
           >
             Details
           </Link>
-
-          {onAddToCart ? (
-            <button
-              type="button"
-              onClick={() => onAddToCart(product)}
-              disabled={stock <= 0}
-              className="inline-flex items-center justify-center gap-1 rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              <IoCartOutline className="text-sm" />
-              Add to Bag
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={() => onAddToCart?.(product)}
+            disabled={stock <= 0}
+            className="flex items-center justify-center gap-2 rounded-xl bg-black py-3 text-[9px] font-black uppercase tracking-widest text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
+          >
+            <IoCartOutline className="text-sm" />
+            Add to Bag
+          </button>
         </div>
       </div>
     </article>

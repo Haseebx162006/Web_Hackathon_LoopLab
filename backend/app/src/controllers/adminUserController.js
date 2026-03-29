@@ -1,6 +1,7 @@
 const { z } = require('zod');
 const User = require('../models/User');
 const { adminUpdateUserStatusSchema } = require('../utils/validators');
+const logger = require('../utils/logger');
 
 const getAllUsers = async (req, res, next) => {
   try {
@@ -82,7 +83,7 @@ const updateUserStatus = async (req, res, next) => {
     await user.save();
     
     // Simulating audit logging (if needed could be written to a DB collection later)
-    console.log(`[AUDIT] Admin ${req.user.email} changed user ${user.email} status to ${validatedData.status}`);
+    logger.info(`[AUDIT] Admin ${req.user.email} changed user ${user.email} status to ${validatedData.status}`);
 
     res.status(200).json({
       success: true,

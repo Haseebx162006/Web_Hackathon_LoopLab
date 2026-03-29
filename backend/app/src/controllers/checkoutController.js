@@ -32,7 +32,7 @@ const checkoutCart = async (req, res, next) => {
         };
       }
 
-      const price = product.discountPrice || product.price;
+      const price = product.discountPrice != null ? product.discountPrice : product.price;
 
       ordersBySeller[sellerIdStr].items.push({
         product: product._id,
@@ -42,13 +42,16 @@ const checkoutCart = async (req, res, next) => {
 
       ordersBySeller[sellerIdStr].totalAmount += price * item.quantity;
       
-      // Basic stock reduction
-        if (product.stockQuantity !== undefined && product.stockQuantity !== null) {
-          product.stockQuantity -= item.quantity;
-          if (product.stockQuantity < 0) {
-              throw new Error(`Insufficient stock for product ${product.productName}`);
-          }
-          await product.save({ session });
+      // Atomic stock reduction — prevents race conditions with concurrent checkouts
+      if (product.stockQuantity != null) {
+        const updated = await Product.findOneAndUpdate(
+          { _id: product._id, stockQuantity: { $gte: item.quantity } },
+          { $inc: { stockQuantity: -item.quantity } },
+          { new: true, session }
+        );
+        if (!updated) {
+          throw new Error(`Insufficient stock for product ${product.productName}`);
+        }
       }
     }
 
@@ -91,9 +94,27 @@ const checkoutCart = async (req, res, next) => {
 
 const mockPaymentWebhook = async (req, res, next) => {
   try {
-    // In a real scenario, you'd verify webhook signature
+    // Verify webhook secret to prevent unauthorized access
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    const providedSecret = req.headers['x-webhook-secret'];
+    
+    if (webhookSecret && providedSecret !== webhookSecret) {
+      res.status(401);
+      return next(new Error('Invalid webhook secret'));
+    }
+
     const { orderIds, paymentStatus } = req.body;
     
+    if (!Array.isArray(orderIds) || orderIds.length === 0) {
+      res.status(400);
+      return next(new Error('orderIds must be a non-empty array'));
+    }
+
+    if (!['success', 'failed'].includes(paymentStatus)) {
+      res.status(400);
+      return next(new Error('paymentStatus must be "success" or "failed"'));
+    }
+
     if (paymentStatus === 'success') {
       await Order.updateMany(
         { _id: { $in: orderIds } },

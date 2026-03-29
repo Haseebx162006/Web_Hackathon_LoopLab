@@ -14,10 +14,20 @@ const populateOptions = [
 
 const listOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ sellerId: sellerId(req) })
-      .populate(populateOptions)
-      .sort({ createdAt: -1 })
-      .lean();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = { sellerId: sellerId(req) };
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .populate(populateOptions)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments(filter),
+    ]);
 
     const data = orders.map((o) => {
       const { buyerId, ...rest } = o;
@@ -28,7 +38,11 @@ const listOrders = async (req, res, next) => {
       };
     });
 
-    res.status(200).json({ success: true, data: data });
+    res.status(200).json({
+      success: true,
+      data,
+      pagination: { total, page, pages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     next(err);
   }

@@ -1,6 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const { signup, login, sellerLogin, oauthSuccess, oauthFailure } = require('../controllers/authController');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -25,9 +26,9 @@ function strategyConfigured(provider) {
   }
 }
 
-router.post('/signup', signup);
-router.post('/login', login);
-router.post('/seller-login', sellerLogin);
+router.post('/signup', authLimiter, signup);
+router.post('/login', authLimiter, login);
+router.post('/seller-login', authLimiter, sellerLogin);
 
 router.get('/oauth/failure', oauthFailure);
 

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
@@ -33,7 +34,7 @@ const getDashboard = async (req, res, next) => {
     const salesGraphData = await Order.aggregate([
       {
         $match: {
-          sellerId,
+          sellerId: new mongoose.Types.ObjectId(sellerId),
           status: 'delivered', // Only counting completed sales
           createdAt: { $gte: sevenDaysAgo }
         }

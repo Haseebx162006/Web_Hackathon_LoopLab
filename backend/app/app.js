@@ -24,15 +24,18 @@ const supportRoutes = require('./src/routes/supportRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
 
 const errorHandler = require('./src/middleware/errorMiddleware');
-const limiter = require('./src/middleware/rateLimiter');
+const { limiter } = require('./src/middleware/rateLimiter');
 
 const app = express();
+
+// Render (and similar platforms) run behind a proxy.
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || true,
+    origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? false : true),
     credentials: true,
   })
 );
@@ -63,6 +66,15 @@ app.use('/api/chat', chatRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 app.use((req, res, next) => {

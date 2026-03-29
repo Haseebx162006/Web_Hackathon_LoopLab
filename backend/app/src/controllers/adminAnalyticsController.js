@@ -57,27 +57,25 @@ const getPlatformAnalytics = async (req, res, next) => {
       { $sort: { totalSales: -1 } },
     ]);
 
-// 4. Active Users (Users who placed/received orders in last 30 days OR logged in)       
+    // 4. Active Users — using aggregation to count distinct users (efficient)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const activeOrders = await Order.find({ createdAt: { $gte: thirtyDaysAgo } }).select('buyerId sellerId');
+    const [activeBuyerAgg, activeSellerAgg] = await Promise.all([
+      Order.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: '$buyerId' } },
+        { $count: 'total' },
+      ]),
+      Order.aggregate([
+        { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: '$sellerId' } },
+        { $count: 'total' },
+      ]),
+    ]);
 
-    const activeBuyerIds = new Set();
-    const activeSellerIds = new Set();
-
-    activeOrders.forEach(order => {
-      activeBuyerIds.add(order.buyerId.toString());
-      activeSellerIds.add(order.sellerId.toString());
-    });
-
-    // Also count users who logged in recently
-    const recentlyLoggedInUsers = await User.find({ lastLogin: { $gte: thirtyDaysAgo } }).select('_id role');
-    
-    recentlyLoggedInUsers.forEach(user => {
-      if (user.role === 'buyer') activeBuyerIds.add(user._id.toString());
-      if (user.role === 'seller') activeSellerIds.add(user._id.toString());
-    });
+    const activeBuyerCount = activeBuyerAgg[0]?.total || 0;
+    const activeSellerCount = activeSellerAgg[0]?.total || 0;
 
     res.status(200).json({
       success: true,
@@ -86,8 +84,8 @@ const getPlatformAnalytics = async (req, res, next) => {
         orderTrends: orderTrends.map((item) => ({ date: item._id, orders: item.orders })),
         topCategories: topCategories.map((item) => ({ category: item._id, totalSales: item.totalSales })),
         activeUsers: {
-          buyers: activeBuyerIds.size,
-          sellers: activeSellerIds.size,
+          buyers: activeBuyerCount,
+          sellers: activeSellerCount,
         },
       },
     });

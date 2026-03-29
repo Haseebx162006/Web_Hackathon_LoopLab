@@ -3,15 +3,30 @@ const Product = require('../models/Product');
 const SearchHistory = require('../models/SearchHistory');
 const { autocompleteQuerySchema } = require('../utils/validators');
 
+// In-memory cache for autocomplete product list (5 minute TTL)
+let _cachedProducts = null;
+let _cacheTimestamp = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const getCachedProducts = async () => {
+  const now = Date.now();
+  if (_cachedProducts && (now - _cacheTimestamp) < CACHE_TTL_MS) {
+    return _cachedProducts;
+  }
+  _cachedProducts = await Product.find({ status: 'approved' })
+    .select('productName category')
+    .lean();
+  _cacheTimestamp = now;
+  return _cachedProducts;
+};
+
 const autocomplete = async (req, res, next) => {
   try {
     const { q } = autocompleteQuerySchema.parse(req.query);
     const trimmed = q.trim().toLowerCase();
 
-    // Fetch approved products for fuzzy search
-    const products = await Product.find({ status: 'approved' })
-      .select('productName category')
-      .lean();
+    // Use cached products to avoid full table scan per keystroke
+    const products = await getCachedProducts();
 
     // Build Fuse.js index with typo tolerance
     const fuse = new Fuse(products, {

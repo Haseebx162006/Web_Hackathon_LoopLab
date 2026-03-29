@@ -64,23 +64,6 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    addresses: [
-      {
-        label: { type: String, default: 'Work' },
-        street: String,
-        city: String,
-        state: String,
-        zipCode: String,
-        country: { type: String, default: 'Pakistan' },
-        isDefault: { type: Boolean, default: false },
-        lat: Number,
-        lng: Number,
-      },
-    ],
   },
   {
     timestamps: true,

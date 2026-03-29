@@ -2,6 +2,20 @@
 
 import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { 
+  IoSearchOutline, 
+  IoCartOutline,
+  IoCashOutline,
+  IoTimeOutline,
+  IoChevronDownOutline,
+  IoChevronUpOutline,
+  IoCubeOutline
+} from 'react-icons/io5';
+import { FaFileExcel, FaFilePdf } from 'react-icons/fa6';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 import SellerBadge from '@/components/seller/SellerBadge';
 import SellerButton from '@/components/seller/SellerButton';
 import SellerCard from '@/components/seller/SellerCard';
@@ -62,6 +76,7 @@ const renderAddress = (order: SellerOrder) => {
 const OrdersManagementPage = () => {
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, OrderDraftState>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   const {
     data: ordersResponse,
@@ -75,6 +90,21 @@ const OrdersManagementPage = () => {
   const [updateOrderStatus, { isLoading: updatingStatus }] = useUpdateSellerOrderStatusMutation();
 
   const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => 
+      order._id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      order.buyer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.buyer?.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [orders, searchQuery]);
+
+  const stats = useMemo(() => {
+    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+    const activeOrders = orders.filter(o => ['pending', 'processing', 'confirmed', 'packed', 'shipped'].includes(o.status)).length;
+    const completedOrders = orders.filter(o => o.status === 'delivered').length;
+    return { totalRevenue, activeOrders, completedOrders };
+  }, [orders]);
 
   const getDraft = (order: SellerOrder): OrderDraftState => {
     return (
@@ -111,12 +141,327 @@ const OrdersManagementPage = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (filteredOrders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    const dataToExport = filteredOrders.map(order => ({
+      'Order ID': order._id,
+      'Date': formatDateTime(order.createdAt),
+      'Customer': order.buyer?.name || 'Unknown',
+      'Email': order.buyer?.email || '--',
+      'Total': formatCurrency(order.total),
+      'Status': order.status,
+      'Tracking ID': order.trackingId || '--',
+      'Shipping Address': renderAddress(order)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
+    XLSX.writeFile(workbook, `seller_orders_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success('Excel report generated');
+  };
+
+  const handleExportPDF = () => {
+    if (filteredOrders.length === 0) {
+      toast.error('No orders to export');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const tableColumn = ['Order ID', 'Date', 'Customer', 'Total', 'Status'];
+    const tableRows = filteredOrders.map(order => [
+      order._id.slice(-8),
+      formatDateTime(order.createdAt),
+      order.buyer?.name || 'Unknown',
+      formatCurrency(order.total),
+      order.status
+    ]);
+
+    doc.text('Orders Report', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], fontSize: 9 },
+      styles: { fontSize: 8 }
+    });
+
+    doc.save(`seller_orders_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success('PDF report generated');
+  };
+
   return (
     <div className="space-y-8">
       <SellerPageHeader
         title="Orders Management"
         description="Review buyer details, inspect item breakdowns, and update shipment status with tracking IDs."
       />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="relative group">
+           <div className="absolute -inset-0.5 bg-linear-to-r from-emerald-200 to-teal-100 rounded-4xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+           <SellerCard className="relative bg-white/80 backdrop-blur-xl border border-white/60">
+              <div className="flex items-start justify-between">
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Total Revenue</p>
+                    <p className="mt-2 text-3xl font-light tracking-tight text-black">{formatCurrency(stats.totalRevenue)}</p>
+                 </div>
+                 <div className="h-10 w-10 bg-emerald-50 rounded-2xl flex items-center justify-center border border-emerald-100/50">
+                    <IoCashOutline className="text-emerald-400 text-lg" />
+                 </div>
+              </div>
+              <p className="mt-4 text-[10px] font-medium text-emerald-600 flex items-center gap-1.5 uppercase tracking-wider">
+                 <span className="h-1 w-1 rounded-full bg-emerald-400"></span>
+                 Gross earnings
+              </p>
+           </SellerCard>
+        </div>
+
+        <div className="relative group">
+           <div className="absolute -inset-0.5 bg-linear-to-r from-amber-200 to-orange-100 rounded-4xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+           <SellerCard className="relative bg-white/80 backdrop-blur-xl border border-white/60">
+              <div className="flex items-start justify-between">
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Active Orders</p>
+                    <p className="mt-2 text-3xl font-light tracking-tight text-black">{stats.activeOrders}</p>
+                 </div>
+                 <div className="h-10 w-10 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-100/50">
+                    <IoCartOutline className="text-amber-400 text-lg" />
+                 </div>
+              </div>
+              <p className="mt-4 text-[10px] font-medium text-amber-600 flex items-center gap-1.5 uppercase tracking-wider">
+                 <span className="h-1 w-1 rounded-full bg-amber-400"></span>
+                 In fulfillment pipeline
+              </p>
+           </SellerCard>
+        </div>
+
+        <div className="relative group">
+           <div className="absolute -inset-0.5 bg-linear-to-r from-zinc-200 to-zinc-100 rounded-4xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+           <SellerCard className="relative bg-white/80 border border-white/60">
+              <div className="flex items-start justify-between">
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Completed Orders</p>
+                    <p className="mt-2 text-3xl font-light tracking-tight text-zinc-800">{stats.completedOrders}</p>
+                 </div>
+                 <div className="h-10 w-10 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-100/50">
+                    <IoTimeOutline className="text-zinc-400 text-lg" />
+                 </div>
+              </div>
+              <p className="mt-4 text-[10px] font-medium text-zinc-500 flex items-center gap-1.5 uppercase tracking-wider">
+                 <span className="h-1 w-1 rounded-full bg-zinc-300"></span>
+                 Successful deliveries
+              </p>
+           </SellerCard>
+        </div>
+      </div>
+
+      <SellerCard className="bg-white/80 border border-white/60">
+        <div className="flex flex-col lg:flex-row divide-y lg:divide-y-0 lg:divide-x divide-zinc-100/50 -m-6 lg:-m-8">
+           <div className="flex-1 p-6 lg:p-8">
+              <div className="relative group">
+                <IoSearchOutline className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-lg transition-colors group-focus-within:text-black" />
+                <input 
+                  type="text" 
+                  placeholder="Filter by Order ID, Name or Email..."
+                  className="w-full bg-zinc-50/50 border border-zinc-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-light outline-none transition-all focus:bg-white focus:ring-1 focus:ring-black/5"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+           </div>
+           
+           <div className="flex-initial p-6 lg:p-8 flex items-center gap-2">
+              <button 
+                onClick={handleExportExcel}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-zinc-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-all font-semibold text-[10px] uppercase tracking-widest shadow-sm active:scale-95"
+                title="Export Excel"
+              >
+                <FaFileExcel className="text-lg" />
+                <span>Excel</span>
+              </button>
+              <button 
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white border border-zinc-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all font-semibold text-[10px] uppercase tracking-widest shadow-sm active:scale-95"
+                title="Export PDF"
+              >
+                <FaFilePdf className="text-lg" />
+                <span>PDF</span>
+              </button>
+           </div>
+        </div>
+      </SellerCard>
+
+      <div className="relative group">
+        <div className="absolute -inset-0.5 bg-linear-to-b from-zinc-100 to-transparent rounded-[2.5rem] blur opacity-10"></div>
+        <SellerCard className="relative bg-white/80 border border-white/60 overflow-hidden" noPadding>
+          <div className="p-6 lg:p-8 flex items-center justify-between border-b border-zinc-50 bg-zinc-50/30">
+            <h2 className="text-lg font-light tracking-tight text-black flex items-center gap-3">
+              Order Catalog
+              <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 px-2 py-0.5 rounded-full uppercase tracking-widest">{filteredOrders.length} Records</span>
+            </h2>
+            <div className="flex items-center gap-1 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <div className={`h-1.5 w-1.5 rounded-full ${isFetching ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+              {isFetching ? 'Synchronizing...' : 'Live Data'}
+            </div>
+          </div>
+
+          {filteredOrders.length === 0 ? (
+            <div className="p-20 text-center">
+               <IoSearchOutline className="text-4xl text-zinc-200 mx-auto mb-4" />
+               <p className="text-sm font-light text-zinc-400">No matching orders found.</p>
+            </div>
+          ) : (
+            <SellerTable
+              headers={['Order Reference', 'Customer Details', 'Volume', 'Fulfillment', 'Timeline & Status', 'Shipment Tracking', 'Actions']}
+            >
+              {filteredOrders.map((order) => {
+                const draft = getDraft(order);
+                const isExpanded = expandedOrderId === order._id;
+
+                return (
+                  <React.Fragment key={order._id}>
+                    <tr className="group hover:bg-black/2 transition-colors border-b border-zinc-50 last:border-0">
+                      <td className="px-6 py-6 font-light">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-black group-hover:text-brand-purple transition-colors">#{order._id.slice(-8)}</p>
+                          <p className="mt-1 text-[11px] font-light text-zinc-400 uppercase tracking-[0.15em]">{formatDateTime(order.createdAt)}</p>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-6 font-light">
+                        <p className="text-sm font-light text-black">{order.buyer?.name || 'Unknown'}</p>
+                        <p className="mt-1 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">{order.buyer?.email || '--'}</p>
+                      </td>
+
+                      <td className="px-6 py-6">
+                         <span className="px-3 py-1 bg-zinc-50 text-[10px] font-bold text-zinc-500 rounded-lg uppercase tracking-wider border border-zinc-100">
+                            {order.items.length} Units
+                         </span>
+                      </td>
+
+                      <td className="px-6 py-6">
+                         <div className="max-w-[180px]">
+                            <p className="text-[10px] font-light text-zinc-400 leading-relaxed uppercase tracking-wider line-clamp-2">{renderAddress(order)}</p>
+                         </div>
+                      </td>
+
+                      <td className="px-6 py-6">
+                         <div className="flex flex-col gap-2">
+                            <SellerBadge label={order.status.replace('_', ' ')} tone={getOrderTone(order.status)} />
+                            <button 
+                              onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
+                              className="flex items-center gap-1.5 text-[9px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+                            >
+                               {isExpanded ? <IoChevronUpOutline /> : <IoChevronDownOutline />}
+                               {isExpanded ? 'Hide Details' : 'View Items'}
+                            </button>
+                         </div>
+                      </td>
+
+                      <td className="px-6 py-6">
+                        <div className="relative group/track min-w-[140px]">
+                          <input
+                            type="text"
+                            value={draft.trackingId}
+                            onChange={(event) => setDraft(order._id, { trackingId: event.target.value })}
+                            placeholder="Tracking ID"
+                            className="w-full h-11 rounded-2xl border border-zinc-100 bg-zinc-50/50 px-4 py-3 text-[11px] font-bold text-zinc-800 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-black/5"
+                          />
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-40">
+                             <SellerSelect
+                               label=""
+                               className="!py-2.5"
+                               value={draft.status}
+                               onChange={(event) => {
+                                 setDraft(order._id, { status: event.target.value as SellerStatusUpdate });
+                               }}
+                               options={statusOptions}
+                             />
+                          </div>
+                          <SellerButton
+                            label="Apply"
+                            tone="primary"
+                            className="h-11 px-6 !rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm"
+                            loading={updatingStatus}
+                            onClick={() => {
+                              void handleSave(order);
+                            }}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+
+                    {isExpanded ? (
+                      <tr>
+                        <td colSpan={7} className="p-0">
+                           <div className="bg-zinc-50/40 border-b border-zinc-100/50 p-8 animate-fade-in">
+                              <div className="flex items-center justify-between mb-6">
+                                 <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400 flex items-center gap-2">
+                                    <IoCartOutline className="text-sm" />
+                                    Detailed Order Manifest
+                                 </h3>
+                                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total Valuation: {formatCurrency(order.total)}</p>
+                              </div>
+                              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {order.items.map((item) => {
+                                  const productData =
+                                    typeof item.product === 'object' && item.product !== null ? item.product : null;
+
+                                  return (
+                                    <div key={item._id} className="group/item relative">
+                                       <div className="absolute -inset-0.5 bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-2xl blur opacity-0 group-hover/item:opacity-20 transition"></div>
+                                       <div className="relative rounded-2xl border border-white bg-white/60 p-5 shadow-sm backdrop-blur-sm transition-all hover:shadow-md">
+                                          <div className="flex items-start justify-between">
+                                             <div className="min-w-0 pr-4">
+                                                <p className="text-sm font-semibold text-zinc-900 line-clamp-1 mb-1">
+                                                  {productData?.productName || 'Product unavailable'}
+                                                </p>
+                                                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">SKU: {productData?.skuCode || 'N/A'}</p>
+                                             </div>
+                                             <div className="h-8 w-8 bg-zinc-50 rounded-lg flex items-center justify-center border border-zinc-100 shrink-0">
+                                                <IoCubeOutline className="text-zinc-300 text-sm" />
+                                             </div>
+                                          </div>
+                                          <div className="mt-6 flex items-end justify-between">
+                                             <div>
+                                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Unit Price</p>
+                                                <p className="text-sm font-light text-indigo-600">{formatCurrency(item.priceAtPurchase)}</p>
+                                             </div>
+                                             <div className="text-right">
+                                                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Quantity</p>
+                                                <p className="text-xs font-bold text-zinc-800">x{item.quantity}</p>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                           </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </React.Fragment>
+                );
+              })}
+            </SellerTable>
+          )}
+        </SellerCard>
+      </div>
 
       {isError ? (
         <SellerErrorState
@@ -129,125 +474,7 @@ const OrdersManagementPage = () => {
 
       {isLoading ? (
         <SellerLoader label="Loading seller orders..." />
-      ) : (
-        <SellerCard>
-          <div className="mb-4 flex items-center justify-between gap-3 animate-fade-in-up">
-            <h2 className="text-xl font-light tracking-tight text-black">Order List</h2>
-            <p className="text-xs font-light uppercase tracking-widest text-zinc-400">
-              {orders.length} order(s) {isFetching ? 'refreshing...' : 'loaded'}
-            </p>
-          </div>
-
-          {orders.length === 0 ? (
-            <p className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-6 text-sm font-semibold text-zinc-500">
-              No orders yet. New purchases will appear here.
-            </p>
-          ) : (
-            <SellerTable
-              headers={['Order', 'Buyer', 'Items', 'Address', 'Status', 'Tracking', 'Update']}
-            >
-              {orders.map((order) => {
-                const draft = getDraft(order);
-                const isExpanded = expandedOrderId === order._id;
-
-                return (
-                  <React.Fragment key={order._id}>
-                    <tr className="group hover:bg-zinc-50/50 transition-colors">
-                      <td className="px-4 py-5 font-light">
-                        <button
-                          type="button"
-                          className="text-left group/btn"
-                          onClick={() => setExpandedOrderId(isExpanded ? null : order._id)}
-                        >
-                          <p className="text-sm font-light text-zinc-900 group-hover/btn:text-black transition-colors">#{order._id.slice(-8)}</p>
-                          <p className="mt-1 text-[10px] font-light uppercase tracking-widest text-zinc-400">{formatDateTime(order.createdAt)}</p>
-                          <p className="mt-1.5 text-sm font-light text-zinc-800">{formatCurrency(order.total)}</p>
-                        </button>
-                      </td>
-
-                      <td className="px-4 py-5 font-light">
-                        <p className="text-sm font-light text-zinc-800">{order.buyer?.name || 'Unknown buyer'}</p>
-                        <p className="mt-1 text-xs font-light text-zinc-400">{order.buyer?.email || '--'}</p>
-                        <p className="mt-0.5 text-xs font-light text-zinc-400">{order.buyer?.phoneNumber || '--'}</p>
-                      </td>
-
-                      <td className="px-4 py-5 text-sm font-light text-zinc-600">
-                        {order.items.length} item(s)
-                      </td>
-
-                      <td className="px-4 py-5 text-[11px] font-light text-zinc-400 leading-relaxed uppercase tracking-wider">{renderAddress(order)}</td>
-
-                      <td className="px-4 py-4">
-                        <SellerBadge label={order.status.replace('_', ' ')} tone={getOrderTone(order.status)} />
-                      </td>
-
-                      <td className="px-4 py-5">
-                        <input
-                          type="text"
-                          value={draft.trackingId}
-                          onChange={(event) => setDraft(order._id, { trackingId: event.target.value })}
-                          placeholder="Tracking ID"
-                          className="w-36 rounded-xl border border-zinc-100 bg-white/50 backdrop-blur-sm px-4 py-2.5 text-xs font-light transition-all focus:ring-1 focus:ring-black/5"
-                        />
-                      </td>
-
-                      <td className="px-4 py-4">
-                        <div className="space-y-2">
-                          <SellerSelect
-                            label="Status"
-                            value={draft.status}
-                            onChange={(event) => {
-                              setDraft(order._id, { status: event.target.value as SellerStatusUpdate });
-                            }}
-                            options={statusOptions}
-                          />
-                          <SellerButton
-                            label="Save"
-                            className="w-full px-3 py-2"
-                            loading={updatingStatus}
-                            onClick={() => {
-                              void handleSave(order);
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isExpanded ? (
-                      <tr>
-                        <td colSpan={7} className="bg-zinc-50/30 backdrop-blur-sm px-6 py-6 border-y border-zinc-100/50">
-                          <p className="text-[10px] font-light uppercase tracking-[0.25em] text-zinc-400">Detailed Item Breakdown</p>
-                          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {order.items.map((item) => {
-                              const productData =
-                                typeof item.product === 'object' && item.product !== null ? item.product : null;
-
-                              return (
-                                <div key={item._id} className="rounded-2xl border border-white/40 bg-white/60 p-4 shadow-sm backdrop-blur-sm transition-all hover:bg-white/80">
-                                  <p className="text-sm font-light text-zinc-900 line-clamp-1">
-                                    {productData?.productName || 'Product unavailable'}
-                                  </p>
-                                  <div className="mt-3 flex items-center justify-between">
-                                    <p className="text-[10px] font-light text-zinc-400 uppercase tracking-widest">SKU: {productData?.skuCode || '--'}</p>
-                                    <p className="text-[10px] font-light text-zinc-500 uppercase tracking-widest">Qty: {item.quantity}</p>
-                                  </div>
-                                  <p className="mt-2 text-xs font-light text-zinc-700">
-                                    {formatCurrency(item.priceAtPurchase)}
-                                  </p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </React.Fragment>
-                );
-              })}
-            </SellerTable>
-          )}
-        </SellerCard>
-      )}
+      ) : null}
     </div>
   );
 };

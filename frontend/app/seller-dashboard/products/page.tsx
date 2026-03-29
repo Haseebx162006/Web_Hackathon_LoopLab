@@ -2,6 +2,29 @@
 
 import React, { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { 
+  IoGridOutline, 
+  IoListOutline, 
+  IoSearchOutline, 
+  IoDownloadOutline, 
+  IoFilterOutline,
+  IoEllipsisVertical,
+  IoPricetagOutline,
+  IoCubeOutline,
+  IoCheckmarkCircleOutline,
+  IoAlertCircleOutline,
+  IoTimeOutline,
+  IoCreateOutline,
+  IoTrashOutline,
+  IoImageOutline,
+  IoAddOutline,
+  IoCloseOutline
+} from 'react-icons/io5';
+import { FaFileExcel, FaFilePdf } from 'react-icons/fa6';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 import SellerBadge from '@/components/seller/SellerBadge';
 import SellerButton from '@/components/seller/SellerButton';
 import SellerCard from '@/components/seller/SellerCard';
@@ -12,6 +35,7 @@ import SellerModal from '@/components/seller/SellerModal';
 import SellerPageHeader from '@/components/seller/SellerPageHeader';
 import SellerTable from '@/components/seller/SellerTable';
 import SellerTextarea from '@/components/seller/SellerTextarea';
+import SellerSelect from '@/components/seller/SellerSelect';
 import {
   useBulkUploadProductsMutation,
   useCreateSellerProductMutation,
@@ -19,9 +43,9 @@ import {
   useGetSellerProductsQuery,
   useUpdateSellerProductMutation,
   useUploadProductImagesMutation,
+  useGetSellerCouponsQuery,
   type SellerProduct,
   type SellerProductPayload,
-  type SellerVariant,
 } from '@/store/sellerApi';
 import { formatCurrency, formatDateTime, normalizeApiError } from '@/utils/sellerUtils';
 
@@ -33,8 +57,8 @@ interface ProductFormState {
   discountPrice: string;
   skuCode: string;
   stockQuantity: string;
-  variantsInput: string;
-  imageUrlsInput: string;
+  variants: { key: string; value: string }[];
+  productImages: string[];
 }
 
 interface BulkImportMessage {
@@ -45,44 +69,21 @@ interface BulkImportMessage {
 const getInitialFormState = (): ProductFormState => ({
   productName: '',
   description: '',
-  category: '',
+  category: 'Home Living',
   price: '',
   discountPrice: '',
   skuCode: '',
   stockQuantity: '',
-  variantsInput: '',
-  imageUrlsInput: '',
+  variants: [{ key: '', value: '' }],
+  productImages: [],
 });
 
-const variantsToInput = (variants: SellerVariant[]) => {
-  return variants.map((entry) => `${entry.key}:${entry.value}`).join('\n');
-};
-
-const parseVariants = (value: string) => {
-  return value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [keyPart, ...rest] = line.split(':');
-      const key = keyPart?.trim() ?? '';
-      const parsedValue = rest.join(':').trim();
-      return {
-        key,
-        value: parsedValue,
-      };
-    })
-    .filter((entry) => entry.key && entry.value);
-};
-
-const parseImageUrls = (value: string) => {
-  return value
-    .split(',')
-    .map((url) => url.trim())
-    .filter(Boolean);
-};
 
 const ProductManagementPage = () => {
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(null);
   const [formState, setFormState] = useState<ProductFormState>(getInitialFormState());
@@ -90,7 +91,8 @@ const ProductManagementPage = () => {
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkWarnings, setBulkWarnings] = useState<BulkImportMessage[]>([]);
   const [bulkErrors, setBulkErrors] = useState<BulkImportMessage[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null, null]);
+  const [selectedCoupon, setSelectedCoupon] = useState<string | null>(null);
 
   const {
     data: productsResponse,
@@ -101,6 +103,9 @@ const ProductManagementPage = () => {
     refetch,
   } = useGetSellerProductsQuery();
 
+  const { data: couponsResponse } = useGetSellerCouponsQuery();
+  const coupons = couponsResponse?.data ?? [];
+
   const [createProduct, { isLoading: creating }] = useCreateSellerProductMutation();
   const [updateProduct, { isLoading: updating }] = useUpdateSellerProductMutation();
   const [deleteProduct, { isLoading: deleting }] = useDeleteSellerProductMutation();
@@ -108,13 +113,28 @@ const ProductManagementPage = () => {
   const [bulkUpload, { isLoading: bulkUploading }] = useBulkUploadProductsMutation();
 
   const products = useMemo(() => productsResponse?.data ?? [], [productsResponse?.data]);
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category));
+    return ['all', ...Array.from(cats)].sort();
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchesSearch = p.productName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                           p.skuCode.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchQuery, selectedCategory]);
+
   const submitting = creating || updating || uploadingImages;
 
   const resetForm = () => {
     setFormState(getInitialFormState());
     setEditingProduct(null);
     setFormError(null);
-    setImageFiles([]);
+    setImageFiles([null, null, null, null, null]);
+    setSelectedCoupon(null);
   };
 
   const handleOpenCreate = () => {
@@ -132,11 +152,11 @@ const ProductManagementPage = () => {
       discountPrice: product.discountPrice != null ? String(product.discountPrice) : '',
       skuCode: product.skuCode,
       stockQuantity: String(product.stockQuantity),
-      variantsInput: variantsToInput(product.variants),
-      imageUrlsInput: product.productImages.join(', '),
+      variants: product.variants.length > 0 ? product.variants : [{ key: '', value: '' }],
+      productImages: product.productImages,
     });
     setFormError(null);
-    setImageFiles([]);
+    setImageFiles([null, null, null, null, null]);
     setIsFormOpen(true);
   };
 
@@ -180,10 +200,10 @@ const ProductManagementPage = () => {
       category: formState.category.trim(),
       price,
       discountPrice: discountValue,
-      variants: parseVariants(formState.variantsInput),
+      variants: formState.variants.filter(v => v.key.trim() && v.value.trim()),
       skuCode: formState.skuCode.trim(),
       stockQuantity,
-      productImages: parseImageUrls(formState.imageUrlsInput),
+      productImages: formState.productImages,
     };
 
     return payload;
@@ -211,8 +231,9 @@ const ProductManagementPage = () => {
         toast.success('Product created successfully');
       }
 
-      if (imageFiles.length > 0) {
-        await uploadImages({ productId, files: imageFiles }).unwrap();
+      const validImageFiles = imageFiles.filter((f): f is File => f !== null);
+      if (validImageFiles.length > 0) {
+        await uploadImages({ productId, files: validImageFiles }).unwrap();
         toast.success('Product images uploaded');
       }
 
@@ -272,158 +293,371 @@ const ProductManagementPage = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    if (filteredProducts.length === 0) {
+      toast.error('No products to export');
+      return;
+    }
+
+    const dataToExport = filteredProducts.map(p => ({
+      'Product Name': p.productName,
+      'Category': p.category,
+      'Price': p.price,
+      'Discount Price': p.discountPrice || 'N/A',
+      'Stock': p.stockQuantity,
+      'SKU': p.skuCode,
+      'Status': p.status,
+      'Updated': formatDateTime(p.updatedAt)
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+    XLSX.writeFile(workbook, `seller_products_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success('Excel report generated');
+  };
+
+  const handleExportPDF = () => {
+    if (filteredProducts.length === 0) {
+      toast.error('No products to export');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const tableColumn = ['Product', 'Category', 'Price', 'Stock', 'SKU', 'Status'];
+    const tableRows = filteredProducts.map(p => [
+      p.productName,
+      p.category,
+      formatCurrency(p.price),
+      p.stockQuantity,
+      p.skuCode,
+      p.status
+    ]);
+
+    doc.text('Product Inventory Report', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 0, 0], fontSize: 9 },
+      styles: { fontSize: 8 }
+    });
+
+    doc.save(`seller_products_${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success('PDF report generated');
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-20">
       <SellerPageHeader
-        title="Product Management"
-        description="Create, update, delete, and bulk upload products while keeping SKU and inventory details synchronized."
-        action={<SellerButton label="Add Product" onClick={handleOpenCreate} />}
+        title="Inventory Manager"
+        description="Streamline your product catalog with high-fidelity control and data visibility."
+        action={
+          <div className="flex items-center gap-3">
+             <div className="hidden sm:flex items-center bg-white/50 backdrop-blur-md rounded-2xl border border-white/60 p-1 shadow-inner">
+                <button 
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                >
+                  <IoListOutline className="text-xl" />
+                </button>
+                <button 
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-black text-white shadow-lg' : 'text-zinc-400 hover:text-black'}`}
+                >
+                  <IoGridOutline className="text-xl" />
+                </button>
+             </div>
+             <SellerButton label="New Product" onClick={handleOpenCreate} />
+          </div>
+        }
       />
 
-      <SellerCard>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] md:items-end">
-          <div>
-            <p className="text-xs font-light uppercase tracking-[0.22em] text-zinc-400">Bulk Product Upload</p>
-            <p className="mt-1 text-sm font-light text-zinc-500">
-              Upload an Excel file with product rows. Supported columns include productName, description,
-              category, price, discountPrice, skuCode, stockQuantity, variants, and productImages.
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
-                setBulkFile(file);
-              }}
-              className="block w-full rounded-xl border border-zinc-100 bg-white/50 backdrop-blur-sm px-4 py-2.5 text-xs text-zinc-500 transition-all focus:ring-1 focus:ring-black/5"
-            />
-            <SellerButton label="Upload File" loading={bulkUploading} onClick={handleBulkUpload} />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Management Tools */}
+        <div className="lg:col-span-8 space-y-6">
+           <SellerCard className="bg-white/80" noPadding>
+              <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-zinc-100/50">
+                 <div className="flex-1 p-4 flex items-center gap-3">
+                    <IoSearchOutline className="text-zinc-400 text-xl shrink-0" />
+                    <input 
+                      type="text" 
+                      placeholder="Search items by name or SKU..." 
+                      className="w-full bg-transparent border-none text-sm font-light focus:ring-0 placeholder:text-zinc-300"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                 </div>
+                 <div className="p-4 flex items-center gap-3">
+                    <IoFilterOutline className="text-zinc-400" />
+                    <select 
+                      className="bg-transparent border-none text-xs font-light focus:ring-0 text-zinc-600 appearance-none pr-8"
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                       {categories.map(c => (
+                         <option key={c} value={c}>{c === 'all' ? 'All Categories' : c}</option>
+                       ))}
+                    </select>
+                 </div>
+                  <div className="p-4 flex items-center gap-2 bg-zinc-50/50">
+                    <button 
+                      onClick={handleExportExcel}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-zinc-100 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 transition-all font-semibold text-xs shadow-sm active:scale-95"
+                      title="Export Excel"
+                    >
+                      <FaFileExcel className="text-lg" />
+                      <span>Excel Report</span>
+                    </button>
+                    <button 
+                      onClick={handleExportPDF}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-zinc-100 text-rose-600 hover:bg-rose-50 hover:border-rose-200 transition-all font-semibold text-xs shadow-sm active:scale-95"
+                      title="Export PDF"
+                    >
+                      <FaFilePdf className="text-lg" />
+                      <span>PDF Catalog</span>
+                    </button>
+                 </div>
+              </div>
+           </SellerCard>
+
+           {isLoading ? (
+             <SellerLoader label="Fetching catalog..." />
+           ) : isError ? (
+             <SellerErrorState message={normalizeApiError(error, 'Catalog refresh failed.')} onRetry={refetch} />
+           ) : filteredProducts.length === 0 ? (
+             <SellerCard className="py-20 text-center bg-white/40">
+                <div className="max-w-xs mx-auto space-y-4">
+                   <div className="h-16 w-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
+                      <IoCubeOutline className="text-3xl text-zinc-300" />
+                   </div>
+                   <p className="text-sm font-light text-zinc-400">No products match your current filters or search query.</p>
+                   <SellerButton label="Clear All" tone="secondary" onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }} />
+                </div>
+             </SellerCard>
+           ) : (
+             <>
+               {viewMode === 'list' ? (
+                 <SellerCard className="bg-white/80 overflow-hidden" noPadding>
+                    <SellerTable headers={['Product Details', 'Category', 'Economics', 'Inventory', 'Status', 'Actions']}>
+                       {filteredProducts.map((p) => (
+                         <tr key={p._id} className="group hover:bg-black/5 transition-colors border-b border-zinc-50/50 last:border-0">
+                            <td className="px-6 py-5">
+                               <div className="flex items-center gap-4">
+                                  <div className="h-12 w-12 rounded-2xl bg-zinc-100 border border-zinc-200/50 overflow-hidden shrink-0 flex items-center justify-center">
+                                     {p.productImages[0] ? (
+                                       <img src={p.productImages[0]} alt="" className="h-full w-full object-cover" />
+                                     ) : (
+                                       <IoCubeOutline className="text-xl text-zinc-300" />
+                                     )}
+                                  </div>
+                                  <div className="min-w-0">
+                                     <p className="text-sm font-light text-black truncate">{p.productName}</p>
+                                     <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{p.skuCode}</p>
+                                  </div>
+                               </div>
+                            </td>
+                            <td className="px-6 py-5">
+                               <span className="text-xs font-light text-zinc-500 bg-zinc-100/50 px-3 py-1 rounded-full">{p.category}</span>
+                            </td>
+                            <td className="px-6 py-5">
+                               <p className="text-sm font-light text-black">{formatCurrency(p.price)}</p>
+                               {p.discountPrice && (
+                                 <p className="text-[10px] text-rose-400 font-light mt-0.5">-{formatCurrency(p.discountPrice)}</p>
+                               )}
+                            </td>
+                            <td className="px-6 py-5">
+                               <div className="flex items-center gap-2">
+                                  <div className={`h-1.5 w-1.5 rounded-full ${p.stockQuantity > 10 ? 'bg-emerald-400' : 'bg-rose-400'}`} />
+                                  <span className="text-xs font-light text-zinc-600">{p.stockQuantity} in stock</span>
+                               </div>
+                            </td>
+                            <td className="px-6 py-5">
+                               <SellerBadge 
+                                 label={p.status} 
+                                 tone={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} 
+                               />
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                               <div className="flex items-center justify-end gap-2 transition-opacity">
+                                  <button 
+                                    onClick={() => handleOpenEdit(p)} 
+                                    className="p-2 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all text-indigo-500"
+                                    title="Edit Product"
+                                  >
+                                     <IoCreateOutline className="text-lg" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDelete(p._id)} 
+                                    className="p-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all text-rose-500"
+                                    title="Delete Product"
+                                  >
+                                     <IoTrashOutline className="text-lg" />
+                                  </button>
+                               </div>
+                            </td>
+                         </tr>
+                       ))}
+                    </SellerTable>
+                 </SellerCard>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredProducts.map((p) => (
+                      <div key={p._id} className="group relative glass bg-white/80 rounded-[2.5rem] border border-white/60 p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-black/5 hover:-translate-y-1">
+                         <div className="absolute top-6 right-6 z-10">
+                            <SellerBadge 
+                              label={p.status} 
+                              tone={p.status === 'approved' ? 'success' : p.status === 'rejected' ? 'danger' : 'warning'} 
+                            />
+                         </div>
+                         <div className="flex items-start gap-5">
+                            <div className="h-28 w-28 rounded-3xl bg-zinc-50 border border-zinc-100 overflow-hidden shrink-0 flex items-center justify-center">
+                               {p.productImages[0] ? (
+                                 <img src={p.productImages[0]} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                               ) : (
+                                 <IoCubeOutline className="text-4xl text-zinc-200" />
+                               )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                               <p className="text-[10px] font-black tracking-[0.2em] text-brand-purple uppercase mb-1">{p.category}</p>
+                               <h3 className="text-lg font-light text-black truncate leading-tight mb-2">{p.productName}</h3>
+                               <div className="flex items-baseline gap-2">
+                                  <span className="text-xl font-light text-black">{formatCurrency(p.price)}</span>
+                                  {p.discountPrice && (
+                                    <span className="text-xs text-rose-400 line-through font-light opacity-60">{formatCurrency(p.price + p.discountPrice)}</span>
+                                  )}
+                               </div>
+                            </div>
+                         </div>
+                         
+                         <div className="grid grid-cols-2 gap-4 mt-8 pb-6 border-b border-zinc-100/50">
+                            <div className="space-y-1">
+                               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Inventory</p>
+                               <p className={`text-xs font-light ${p.stockQuantity < 5 ? 'text-rose-500' : 'text-zinc-600'}`}>{p.stockQuantity} Units</p>
+                            </div>
+                            <div className="space-y-1">
+                               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Identifier</p>
+                               <p className="text-xs font-light text-zinc-600 truncate">{p.skuCode}</p>
+                            </div>
+                         </div>
+                         
+                         <div className="flex items-center justify-between pt-6">
+                            <p className="text-[9px] font-light text-zinc-400 flex items-center gap-1">
+                               <IoTimeOutline /> {formatDateTime(p.updatedAt).split(',')[0]}
+                            </p>
+                            <div className="flex items-center gap-2">
+                               <button 
+                                 onClick={() => handleOpenEdit(p)}
+                                 className="h-10 w-10 flex items-center justify-center rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-500 hover:bg-indigo-100 transition-all shadow-sm"
+                                 title="Edit Product"
+                               >
+                                  <IoCreateOutline className="text-xl" />
+                                </button>
+                               <button 
+                                 onClick={() => handleDelete(p._id)}
+                                 className="h-10 w-10 flex items-center justify-center rounded-2xl bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-100 transition-all shadow-sm"
+                                 title="Delete Product"
+                               >
+                                  <IoTrashOutline className="text-xl" />
+                               </button>
+                            </div>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+               )}
+             </>
+           )}
         </div>
 
-        {bulkWarnings.length > 0 ? (
-          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-amber-700">Auto-filled rows</p>
-            <ul className="mt-2 space-y-2">
-              {bulkWarnings.slice(0, 8).map((warning) => (
-                <li key={`warning-${warning.row}-${warning.message}`} className="text-xs font-semibold text-amber-800">
-                  Row {warning.row}: {warning.message}
-                </li>
-              ))}
-            </ul>
-            {bulkWarnings.length > 8 ? (
-              <p className="mt-2 text-[11px] font-semibold text-amber-700">
-                +{bulkWarnings.length - 8} more warning(s)
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        {bulkErrors.length > 0 ? (
-          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-rose-700">Failed rows</p>
-            <ul className="mt-2 space-y-2">
-              {bulkErrors.slice(0, 8).map((importError) => (
-                <li key={`error-${importError.row}-${importError.message}`} className="text-xs font-semibold text-rose-800">
-                  Row {importError.row}: {importError.message}
-                </li>
-              ))}
-            </ul>
-            {bulkErrors.length > 8 ? (
-              <p className="mt-2 text-[11px] font-semibold text-rose-700">
-                +{bulkErrors.length - 8} more error(s)
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-      </SellerCard>
-
-      {isError ? (
-        <SellerErrorState
-          message={normalizeApiError(error, 'Unable to load products.')}
-          onRetry={() => {
-            void refetch();
-          }}
-        />
-      ) : null}
-
-      {isLoading ? (
-        <SellerLoader label="Loading products..." />
-      ) : (
-        <SellerCard>
-          <div className="mb-4 flex items-center justify-between gap-3 animate-fade-in-up">
-            <h2 className="text-xl font-light tracking-tight text-black">Product List</h2>
-            <p className="text-xs font-light uppercase tracking-widest text-zinc-400">
-              {products.length} item(s) {isFetching ? 'updating...' : 'available'}
-            </p>
-          </div>
-
-          {products.length === 0 ? (
-            <p className="rounded-2xl border border-zinc-100 bg-zinc-50/80 p-6 text-sm font-semibold text-zinc-500">
-              No products found. Add your first product to start selling.
-            </p>
-          ) : (
-            <SellerTable
-              headers={['Product', 'Category', 'Price', 'Stock', 'SKU', 'Status', 'Updated', 'Actions']}
-            >
-               {products.map((product) => (
-                <tr key={product._id} className="align-top group hover:bg-zinc-50/50 transition-colors">
-                  <td className="px-4 py-5">
-                    <p className="text-sm font-light text-zinc-900">{product.productName}</p>
-                    <p className="mt-1 max-w-xs text-xs font-light text-zinc-400 leading-relaxed">{product.description}</p>
-                  </td>
-                  <td className="px-4 py-5 text-sm font-light text-zinc-600">{product.category}</td>
-                  <td className="px-4 py-5 text-sm font-light text-zinc-700">
-                    <div className="font-light">{formatCurrency(product.price)}</div>
-                    {product.discountPrice != null ? (
-                      <div className="mt-1 text-[11px] font-light text-rose-400">-{formatCurrency(product.discountPrice)}</div>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-5 text-sm font-light text-zinc-600">{product.stockQuantity}</td>
-                  <td className="px-4 py-5 text-[11px] font-light uppercase tracking-widest text-zinc-400">{product.skuCode}</td>
-                  <td className="px-4 py-5">
-                    <SellerBadge
-                      label={product.status}
-                      tone={
-                        product.status === 'approved'
-                          ? 'success'
-                          : product.status === 'rejected'
-                            ? 'danger'
-                            : 'warning'
-                      }
+        {/* Bulk Actions Panel */}
+        <div className="lg:col-span-4 space-y-6">
+           <SellerCard className="bg-brand-purple/5 border-brand-purple/10">
+              <div className="space-y-6">
+                 <div>
+                    <h3 className="text-lg font-light text-black">Streamline Uploads</h3>
+                    <p className="text-xs font-light text-zinc-500 mt-1 leading-relaxed">
+                       Scale your operations by importing catalog data directly from Excel templates.
+                    </p>
+                 </div>
+                 
+                 <div className="relative group">
+                    <input
+                      type="file"
+                      id="bulk-upload"
+                      accept=".xlsx,.xls"
+                      onChange={(e) => setBulkFile(e.target.files?.[0] ?? null)}
+                      className="hidden"
                     />
-                  </td>
-                  <td className="px-4 py-5 text-[10px] font-light uppercase tracking-widest text-zinc-400">{formatDateTime(product.updatedAt)}</td>
-                  <td className="px-4 py-5">
-                    <div className="flex flex-wrap gap-2">
-                      <SellerButton
-                        label="Edit"
-                        tone="secondary"
-                        className="px-3 py-2 text-[10px]"
-                        onClick={() => handleOpenEdit(product)}
-                      />
-                      <SellerButton
-                        label="Delete"
-                        tone="danger"
-                        className="px-3 py-2 text-[10px]"
-                        loading={deleting}
-                        onClick={() => {
-                          void handleDelete(product._id);
-                        }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </SellerTable>
-          )}
-        </SellerCard>
-      )}
+                    <label 
+                      htmlFor="bulk-upload"
+                      className="flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-4xl p-10 bg-white/50 hover:bg-white hover:border-brand-purple/40 transition-all cursor-pointer text-center"
+                    >
+                       <div className="h-14 w-14 bg-brand-purple/10 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                          <IoDownloadOutline className="text-2xl text-brand-purple rotate-180" />
+                       </div>
+                       <p className="text-sm font-light text-zinc-800">{bulkFile ? bulkFile.name : 'Select Catalog File'}</p>
+                       <p className="text-[10px] text-zinc-400 mt-2 uppercase tracking-widest font-bold">XLSX, XLS supported</p>
+                    </label>
+                 </div>
+
+                 <SellerButton 
+                   label="Execute Import" 
+                   className="w-full h-14" 
+                   loading={bulkUploading} 
+                   onClick={handleBulkUpload}
+                   disabled={!bulkFile}
+                 />
+
+                 {(bulkWarnings.length > 0 || bulkErrors.length > 0) && (
+                   <div className="space-y-4 pt-4 border-t border-brand-purple/10">
+                      {bulkErrors.length > 0 && (
+                        <div className="flex items-start gap-2 text-rose-500">
+                           <IoAlertCircleOutline className="mt-0.5" />
+                           <p className="text-[10px] font-bold uppercase tracking-widest">{bulkErrors.length} Crucial Faults</p>
+                        </div>
+                      )}
+                      {bulkWarnings.length > 0 && (
+                        <div className="flex items-start gap-2 text-amber-500">
+                           <IoCheckmarkCircleOutline className="mt-0.5" />
+                           <p className="text-[10px] font-bold uppercase tracking-widest">{bulkWarnings.length} Logic Adjustments</p>
+                        </div>
+                      )}
+                   </div>
+                 )}
+              </div>
+           </SellerCard>
+
+           <SellerCard className="bg-indigo-50/20 border-indigo-100/50">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-4">Quick Stats</h4>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                    <span className="text-xs font-light text-zinc-500">Total Valuation</span>
+                    <span className="text-sm font-light text-black">
+                       {formatCurrency(products.reduce((acc, p) => acc + (p.price * p.stockQuantity), 0))}
+                    </span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                    <span className="text-xs font-light text-zinc-500">Active Categories</span>
+                    <span className="text-sm font-light text-black">{categories.length - 1}</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                    <span className="text-xs font-light text-zinc-500">Approval Rate</span>
+                    <span className="text-sm font-light text-black">
+                       {Math.round((products.filter(p => p.status === 'approved').length / (products.length || 1)) * 100)}%
+                    </span>
+                 </div>
+              </div>
+           </SellerCard>
+        </div>
+      </div>
 
       <SellerModal
-        title={editingProduct ? 'Edit Product' : 'Add Product'}
+        title={editingProduct ? 'Refine Product' : 'Initialize Product'}
         open={isFormOpen}
         onClose={() => {
           setIsFormOpen(false);
@@ -433,21 +667,28 @@ const ProductManagementPage = () => {
         <form className="space-y-5" onSubmit={handleSubmitProduct}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SellerInput
-              label="Product Name"
+              label="Standard Name"
               name="productName"
               value={formState.productName}
               onChange={(event) => setFormState((prev) => ({ ...prev, productName: event.target.value }))}
               required
             />
-            <SellerInput
-              label="Category"
+            <SellerSelect
+              label="Taxonomy Category"
               name="category"
               value={formState.category}
               onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
+              options={[
+                { value: 'Home Living', label: 'Home Living' },
+                { value: 'Accessories', label: 'Accessories' },
+                { value: 'Bags', label: 'Bags' },
+                { value: 'Electronics', label: 'Electronics' },
+                { value: 'Others', label: 'Others' },
+              ]}
               required
             />
             <SellerInput
-              label="Price"
+              label="Base Valuation"
               name="price"
               type="number"
               min="0"
@@ -457,7 +698,7 @@ const ProductManagementPage = () => {
               required
             />
             <SellerInput
-              label="Discount Price"
+              label="Active Discount"
               name="discountPrice"
               type="number"
               min="0"
@@ -466,14 +707,14 @@ const ProductManagementPage = () => {
               onChange={(event) => setFormState((prev) => ({ ...prev, discountPrice: event.target.value }))}
             />
             <SellerInput
-              label="SKU"
+              label="Primary SKU Code"
               name="skuCode"
               value={formState.skuCode}
               onChange={(event) => setFormState((prev) => ({ ...prev, skuCode: event.target.value }))}
               required
             />
             <SellerInput
-              label="Stock Quantity"
+              label="Units in Reserve"
               name="stockQuantity"
               type="number"
               min="0"
@@ -485,7 +726,7 @@ const ProductManagementPage = () => {
           </div>
 
           <SellerTextarea
-            label="Description"
+            label="Narrative Description"
             name="description"
             rows={4}
             value={formState.description}
@@ -493,46 +734,130 @@ const ProductManagementPage = () => {
             required
           />
 
-          <SellerTextarea
-            label="Variants"
-            name="variantsInput"
-            rows={4}
-            hint="Format each line as key:value. Example: Size:M"
-            value={formState.variantsInput}
-            onChange={(event) => setFormState((prev) => ({ ...prev, variantsInput: event.target.value }))}
-          />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Additions</span>
+              <button 
+                type="button" 
+                onClick={() => setFormState(prev => ({ ...prev, variants: [...prev.variants, { key: '', value: '' }] }))}
+                className="flex items-center gap-1 text-[10px] font-bold text-brand-purple hover:underline"
+              >
+                <IoAddOutline /> Add Additions
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {formState.variants.map((variant, index) => (
+                <div key={index} className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <input 
+                      placeholder="Key (e.g. Size)" 
+                      className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2 text-xs outline-none focus:ring-1 focus:ring-black/10 transition-all font-light"
+                      value={variant.key}
+                      onChange={(e) => {
+                        const newVariants = [...formState.variants];
+                        newVariants[index].key = e.target.value;
+                        setFormState(prev => ({ ...prev, variants: newVariants }));
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input 
+                      placeholder="Value (e.g. XL)" 
+                      className="w-full bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-2 text-xs outline-none focus:ring-1 focus:ring-black/10 transition-all font-light"
+                      value={variant.value}
+                      onChange={(e) => {
+                        const newVariants = [...formState.variants];
+                        newVariants[index].value = e.target.value;
+                        setFormState(prev => ({ ...prev, variants: newVariants }));
+                      }}
+                    />
+                  </div>
+                  {formState.variants.length > 1 && (
+                    <button 
+                      type="button" 
+                      onClick={() => setFormState(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== index) }))}
+                      className="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-colors"
+                    >
+                      <IoCloseOutline />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <SellerTextarea
-            label="Product Image URLs"
-            name="imageUrlsInput"
-            rows={3}
-            hint="Comma-separated image URLs."
-            value={formState.imageUrlsInput}
-            onChange={(event) => setFormState((prev) => ({ ...prev, imageUrlsInput: event.target.value }))}
-          />
+          <div className="space-y-4">
+             <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
+                Visual Assets (Up to 5)
+             </span>
+             <div className="grid grid-cols-5 gap-4">
+               {['Cover', '2nd', '3rd', '4th', '5th'].map((label, index) => {
+                 const imageUrl = formState.productImages[index];
+                 const file = imageFiles[index];
+                 const previewUrl = file ? URL.createObjectURL(file) : imageUrl;
 
-          <label className="block space-y-2">
-            <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">
-              Upload Product Images
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(event) => {
-                const files = Array.from(event.target.files ?? []);
-                setImageFiles(files);
-              }}
-              className="block w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm"
-            />
-            <p className="text-xs text-zinc-500">Optional. Up to 5 files per request.</p>
-          </label>
+                 return (
+                   <div key={label} className="space-y-2">
+                     <div className="relative aspect-square rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center overflow-hidden group">
+                       {previewUrl ? (
+                         <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+                       ) : (
+                         <IoImageOutline className="text-xl text-zinc-300" />
+                       )}
+                       <input
+                         type="file"
+                         accept="image/*"
+                         className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                         onChange={(e) => {
+                           const newFiles = [...imageFiles];
+                           newFiles[index] = e.target.files?.[0] || null;
+                           setImageFiles(newFiles);
+                         }}
+                       />
+                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                         <span className="text-[8px] text-white font-bold uppercase tracking-widest">Change</span>
+                       </div>
+                     </div>
+                     <p className="text-[8px] text-center font-black text-zinc-400 uppercase tracking-widest">{label}</p>
+                   </div>
+                 );
+               })}
+             </div>
+          </div>
+
+          <div className="space-y-4">
+            <span className="block text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500">Available Coupons</span>
+            {coupons.length === 0 ? (
+              <p className="text-xs text-zinc-400 italic">No coupons created yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {coupons.map((coupon) => (
+                  <button
+                    key={coupon._id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCoupon(coupon._id);
+                      toast.success(`Coupon ${coupon.code} applied!`);
+                    }}
+                    className={`px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all ${
+                      selectedCoupon === coupon._id 
+                        ? 'bg-black border-black text-white' 
+                        : 'border-zinc-100 text-zinc-500 hover:border-zinc-300'
+                    }`}
+                  >
+                    {coupon.code} ({coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue}`})
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {formError ? <SellerErrorState message={formError} /> : null}
 
-          <div className="flex flex-wrap justify-end gap-3 pt-2">
+          <div className="flex flex-wrap justify-end gap-3 pt-6 border-t border-zinc-100">
             <SellerButton
-              label="Cancel"
+              label="Discard"
               tone="secondary"
               type="button"
               onClick={() => {
@@ -541,7 +866,7 @@ const ProductManagementPage = () => {
               }}
             />
             <SellerButton
-              label={editingProduct ? 'Save Changes' : 'Create Product'}
+              label={editingProduct ? 'Update Inventory' : 'Finalize Creation'}
               type="submit"
               loading={submitting}
             />

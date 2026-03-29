@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
-import { IoHeartOutline, IoStar } from 'react-icons/io5';
+import { IoChatbubbleEllipsesOutline, IoHeartOutline, IoStar } from 'react-icons/io5';
 import type { RootState } from '@/store/store';
 import {
   type BuyerProduct,
@@ -339,12 +339,21 @@ const ProductDetailPage = () => {
                     </h3>
                   </div>
                 </div>
-                <Link
-                  href={`/stores/${typeof product.sellerId === 'object' ? (product.sellerId as any)._id : product.sellerId}`}
-                  className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
-                >
-                  Visit Store
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={`/stores/${typeof product.sellerId === 'object' ? (product.sellerId as any)._id : product.sellerId}`}
+                    className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
+                  >
+                    Visit Store
+                  </Link>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-zinc-900 hover:text-white"
+                  >
+                    <IoChatbubbleEllipsesOutline className="text-lg" />
+                    Chat
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
-import { IoArrowBack, IoStorefront } from 'react-icons/io5';
+import { IoArrowBack, IoChatbubbleEllipsesOutline, IoStorefront } from 'react-icons/io5';
 import type { RootState } from '@/store/store';
 import {
   useGetBuyerProductsQuery,
@@ -119,7 +119,7 @@ const StorePage = () => {
               <div className="space-y-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-600">
                   <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                  Verified Brand Boutique
+                  Verified Brand Store
                 </span>
                 <h1 className="text-4xl font-black uppercase tracking-tighter text-zinc-900 sm:text-6xl">
                   {storeInfo?.storeName || 'Official Store'}
@@ -130,13 +130,22 @@ const StorePage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 md:items-end">
-              <span className="text-3xl font-black tracking-tighter text-zinc-900">
-                {pagination?.total || 0}
-              </span>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Premium Creations
-              </span>
+            <div className="flex flex-col items-center gap-6 md:flex-row md:items-end">
+              <div className="flex flex-col items-center gap-2 md:items-end">
+                <span className="text-3xl font-black tracking-tighter text-zinc-900">
+                  {pagination?.total || 0}
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  Premium Creations
+                </span>
+              </div>
+              <button
+                type="button"
+                className="group flex items-center gap-3 rounded-2xl bg-black px-8 py-4 text-[10px] font-black uppercase tracking-widest text-white shadow-2xl transition hover:bg-zinc-800 active:scale-95"
+              >
+                <IoChatbubbleEllipsesOutline className="text-lg transition-transform group-hover:rotate-12" />
+                Chat with Seller
+              </button>
             </div>
           </div>
         </div>
@@ -190,7 +199,7 @@ const StorePage = () => {
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-xl shadow-zinc-100">
               <IoStorefront className="text-3xl text-zinc-200" />
             </div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-zinc-900">Boutique is Empty</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-zinc-900">Store is Empty</h2>
             <p className="mt-2 text-sm font-semibold text-zinc-400">This store hasn't released any products yet.</p>
           </div>
         )}

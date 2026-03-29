@@ -200,18 +200,6 @@ const adminUpdateProductSchema = z.object({
   isFlagged: z.boolean().optional(),
 });
 
-const adminUpdateOrderStatusSchema = z.object({
-  status: z.enum(['pending', 'processing', 'confirmed', 'packed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned']),
-});
-
-const adminUpdateOrderReturnSchema = z.object({
-  returnStatus: z.enum(['none', 'requested', 'approved', 'rejected']),
-});
-
-const adminUpdateOrderRefundSchema = z.object({
-  refundStatus: z.enum(['none', 'pending', 'completed']),
-});
-
 const adminPaymentsQuerySchema = z.object({
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
@@ -254,9 +242,6 @@ module.exports = {
   adminLoginSchema,
   adminUpdateUserStatusSchema,
   adminUpdateProductSchema,
-  adminUpdateOrderStatusSchema,
-  adminUpdateOrderReturnSchema,
-  adminUpdateOrderRefundSchema,
   adminPaymentsQuerySchema,
   adminAnalyticsQuerySchema,
   autocompleteQuerySchema,

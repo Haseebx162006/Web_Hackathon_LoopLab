@@ -15,7 +15,7 @@ const AboutPage = () => {
     {
       name: 'Creative Engineer',
       role: 'Full Stack Developer',
-      image: '/assets/about/developer-1.jpeg',
+      image: '/assets/about/developer-2.jpeg',
     },
   ];
 

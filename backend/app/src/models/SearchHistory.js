@@ -26,5 +26,6 @@ const searchHistorySchema = new mongoose.Schema(
 
 searchHistorySchema.index({ count: -1 });
 searchHistorySchema.index({ query: 'text' });
+searchHistorySchema.index({ query: 1, count: -1 });
 
 module.exports = mongoose.model('SearchHistory', searchHistorySchema);

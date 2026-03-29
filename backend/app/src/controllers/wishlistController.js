@@ -7,7 +7,7 @@ const getWishlist = async (req, res, next) => {
     let wishlist = await Wishlist.findOne({ buyerId: req.user._id }).populate({
       path: 'items',
       select: 'productName price discountPrice productImages status stockQuantity'
-    });
+    }).lean();
 
     if (!wishlist) {
       wishlist = { items: [] };
@@ -28,7 +28,9 @@ const addToWishlist = async (req, res, next) => {
       return next(new Error('Invalid product id'));
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+      .select('status')
+      .lean();
     if (!product) {
       res.status(404);
       return next(new Error('Product not found'));

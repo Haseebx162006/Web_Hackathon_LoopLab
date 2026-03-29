@@ -7,21 +7,20 @@ const getCart = async (req, res, next) => {
     let cart = await Cart.findOne({ buyerId: req.user._id }).populate({
       path: 'items.product',
       select: 'productName price discountPrice productImages stockQuantity status'
-    });
+    }).lean();
 
     if (!cart) {
       cart = { items: [] };
     }
 
     // Subtotal calculation
-    let subtotal = 0;
-    cart.items.forEach(item => {
+    const subtotal = (cart.items || []).reduce((sum, item) => {
       if (!item.product) {
-        return;
+        return sum;
       }
       const price = item.product.discountPrice != null ? item.product.discountPrice : item.product.price;
-      subtotal += price * item.quantity;
-    });
+      return sum + (price * item.quantity);
+    }, 0);
 
     res.status(200).json({ success: true, data: { cart, subtotal } });
   } catch (err) {
@@ -44,7 +43,9 @@ const addToCart = async (req, res, next) => {
       return next(new Error('Quantity must be a positive number'));
     }
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId)
+      .select('status stockQuantity')
+      .lean();
     if (!product) {
       res.status(404);
       return next(new Error('Product not found'));
@@ -105,7 +106,9 @@ const updateCartQuantity = async (req, res, next) => {
       return next(new Error('Quantity must be a valid number'));
     }
 
-    const product = await Product.findById(productId).select('stockQuantity status');
+    const product = await Product.findById(productId)
+      .select('stockQuantity status')
+      .lean();
     if (!product) {
       res.status(404);
       return next(new Error('Product not found'));

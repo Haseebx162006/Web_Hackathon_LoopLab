@@ -1,83 +1,72 @@
-const Fuse = require('fuse.js');
 const Product = require('../models/Product');
 const SearchHistory = require('../models/SearchHistory');
 const { autocompleteQuerySchema } = require('../utils/validators');
 
-// In-memory cache for autocomplete product list (5 minute TTL)
-let _cachedProducts = null;
-let _cacheTimestamp = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const escapeRegex = (input = '') => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const getCachedProducts = async () => {
-  const now = Date.now();
-  if (_cachedProducts && (now - _cacheTimestamp) < CACHE_TTL_MS) {
-    return _cachedProducts;
-  }
-  _cachedProducts = await Product.find({ status: 'approved' })
-    .select('productName category')
-    .lean();
-  _cacheTimestamp = now;
-  return _cachedProducts;
-};
+const AUTOCOMPLETE_PRODUCT_LIMIT = 12;
+const AUTOCOMPLETE_CATEGORY_LIMIT = 5;
+const POPULAR_SEARCH_LIMIT = 5;
 
 const autocomplete = async (req, res, next) => {
   try {
     const { q } = autocompleteQuerySchema.parse(req.query);
     const trimmed = q.trim().toLowerCase();
+    const escapedPrefix = escapeRegex(trimmed);
 
-    // Use cached products to avoid full table scan per keystroke
-    const products = await getCachedProducts();
-
-    // Build Fuse.js index with typo tolerance
-    const fuse = new Fuse(products, {
-      keys: ['productName', 'category'],
-      threshold: 0.4,
-      distance: 100,
-      includeScore: true,
-      minMatchCharLength: 1,
-    });
-
-    const fuseResults = fuse.search(trimmed, { limit: 10 });
+    const [products, popularSearches] = await Promise.all([
+      Product.find({
+        status: 'approved',
+        $or: [
+          { productName: { $regex: `^${escapedPrefix}`, $options: 'i' } },
+          { category: { $regex: `^${escapedPrefix}`, $options: 'i' } },
+        ],
+      })
+        .select('productName category')
+        .sort({ createdAt: -1 })
+        .limit(AUTOCOMPLETE_PRODUCT_LIMIT)
+        .lean(),
+      SearchHistory.find({
+        query: { $regex: `^${escapedPrefix}`, $options: 'i' },
+      })
+        .sort({ count: -1 })
+        .limit(POPULAR_SEARCH_LIMIT)
+        .select('query count -_id')
+        .lean(),
+    ]);
 
     // Extract unique product name suggestions
     const seen = new Set();
     const productSuggestions = [];
-    for (const result of fuseResults) {
-      const name = result.item.productName;
+    for (const product of products) {
+      const name = product.productName;
       if (!seen.has(name)) {
         seen.add(name);
         productSuggestions.push({
           productName: name,
-          category: result.item.category,
-          score: result.score,
+          category: product.category,
+          score: 0,
         });
       }
     }
 
-    // Extract distinct categories from results
+    // Extract distinct categories from matched products
     const categorySet = new Set();
-    for (const result of fuseResults) {
-      categorySet.add(result.item.category);
+    for (const product of products) {
+      if (product.category) {
+        categorySet.add(product.category);
+      }
     }
-    const categorySuggestions = Array.from(categorySet).slice(0, 5);
-
-    // Fetch popular past searches matching the prefix
-    const popularSearches = await SearchHistory.find({
-      query: { $regex: `^${trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, $options: 'i' },
-    })
-      .sort({ count: -1 })
-      .limit(5)
-      .select('query count -_id')
-      .lean();
+    const categorySuggestions = Array.from(categorySet).slice(0, AUTOCOMPLETE_CATEGORY_LIMIT);
 
     // Track this search (fire-and-forget)
-    SearchHistory.findOneAndUpdate(
+    SearchHistory.updateOne(
       { query: trimmed },
       {
         $inc: { count: 1 },
         $set: { lastSearchedAt: new Date() },
       },
-      { upsert: true, new: true }
+      { upsert: true }
     ).catch(() => {
       // Silently ignore tracking errors
     });

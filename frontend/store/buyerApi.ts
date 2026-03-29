@@ -87,6 +87,7 @@ export interface BuyerSearchData {
 
 export interface BuyerProductDetailsData {
   product: BuyerProduct;
+  store?: BuyerSellerSummary | null;
   reviews: BuyerReview[];
   avgRating: number;
 }

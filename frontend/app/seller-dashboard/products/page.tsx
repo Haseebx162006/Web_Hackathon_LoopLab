@@ -63,6 +63,10 @@ interface ProductFormState {
 
 interface BulkImportMessage {
   row: number;
+  column?: string;
+  field?: string;
+  productName?: string;
+  autoValue?: string | number | null;
   message: string;
 }
 
@@ -275,13 +279,17 @@ const ProductManagementPage = () => {
 
       if ((result.errors ?? []).length > 0) {
         const firstError = result.errors[0];
-        toast.error(`Row ${firstError.row}: ${firstError.message}`);
+        const columnPart = firstError.column ? `, ${firstError.column}` : '';
+        const productPart = firstError.productName ? ` (${firstError.productName})` : '';
+        toast.error(`Row ${firstError.row}${columnPart}${productPart}: ${firstError.message}`);
       }
 
       if ((result.warnings ?? []).length > 0) {
         const firstWarning = result.warnings?.[0];
         if (firstWarning) {
-          toast(`Row ${firstWarning.row}: ${firstWarning.message}`);
+          const columnPart = firstWarning.column ? `, ${firstWarning.column}` : '';
+          const productPart = firstWarning.productName ? ` (${firstWarning.productName})` : '';
+          toast(`Row ${firstWarning.row}${columnPart}${productPart}: ${firstWarning.message}`);
         }
       }
 
@@ -616,15 +624,47 @@ const ProductManagementPage = () => {
                  {(bulkWarnings.length > 0 || bulkErrors.length > 0) && (
                    <div className="space-y-4 pt-4 border-t border-brand-purple/10">
                       {bulkErrors.length > 0 && (
-                        <div className="flex items-start gap-2 text-rose-500">
-                           <IoAlertCircleOutline className="mt-0.5" />
-                           <p className="text-[10px] font-bold uppercase tracking-widest">{bulkErrors.length} Crucial Faults</p>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 text-rose-500">
+                            <IoAlertCircleOutline className="mt-0.5" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest">{bulkErrors.length} Crucial Faults</p>
+                          </div>
+                          <div className="max-h-32 space-y-1 overflow-y-auto rounded-2xl border border-rose-100 bg-rose-50/50 p-3">
+                            {bulkErrors.slice(0, 6).map((issue, index) => (
+                              <p key={`bulk-error-${issue.row}-${issue.column ?? 'na'}-${index}`} className="text-[10px] font-semibold leading-relaxed text-rose-700">
+                                Row {issue.row}
+                                {issue.column ? `, ${issue.column}` : ''}
+                                {issue.productName ? `, ${issue.productName}` : ''}: {issue.message}
+                              </p>
+                            ))}
+                            {bulkErrors.length > 6 ? (
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-rose-500">
+                                +{bulkErrors.length - 6} more errors
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                       )}
                       {bulkWarnings.length > 0 && (
-                        <div className="flex items-start gap-2 text-amber-500">
-                           <IoCheckmarkCircleOutline className="mt-0.5" />
-                           <p className="text-[10px] font-bold uppercase tracking-widest">{bulkWarnings.length} Logic Adjustments</p>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 text-amber-500">
+                            <IoCheckmarkCircleOutline className="mt-0.5" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest">{bulkWarnings.length} Logic Adjustments</p>
+                          </div>
+                          <div className="max-h-32 space-y-1 overflow-y-auto rounded-2xl border border-amber-100 bg-amber-50/50 p-3">
+                            {bulkWarnings.slice(0, 6).map((issue, index) => (
+                              <p key={`bulk-warning-${issue.row}-${issue.column ?? 'na'}-${index}`} className="text-[10px] font-semibold leading-relaxed text-amber-700">
+                                Row {issue.row}
+                                {issue.column ? `, ${issue.column}` : ''}
+                                {issue.productName ? `, ${issue.productName}` : ''}: {issue.message}
+                              </p>
+                            ))}
+                            {bulkWarnings.length > 6 ? (
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600">
+                                +{bulkWarnings.length - 6} more adjustments
+                              </p>
+                            ) : null}
+                          </div>
                         </div>
                       )}
                    </div>

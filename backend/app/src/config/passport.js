@@ -1,6 +1,3 @@
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const FacebookStrategy = require('passport-facebook').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
 const User = require('../models/User');
 
 function profileEmail(profile) {
@@ -43,6 +40,7 @@ async function findOrCreateOAuthUser(provider, profile) {
 
 module.exports = function configurePassport(passport) {
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
     passport.use(
       new GoogleStrategy(
         {
@@ -63,6 +61,7 @@ module.exports = function configurePassport(passport) {
   }
 
   if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    const { Strategy: FacebookStrategy } = require('passport-facebook');
     passport.use(
       new FacebookStrategy(
         {
@@ -84,6 +83,7 @@ module.exports = function configurePassport(passport) {
   }
 
   if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    const { Strategy: GitHubStrategy } = require('passport-github2');
     passport.use(
       new GitHubStrategy(
         {

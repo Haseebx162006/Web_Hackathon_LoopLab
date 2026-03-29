@@ -1,13 +1,20 @@
 const mongoose = require('mongoose');
-const XLSX = require('xlsx');
 const Product = require('../models/Product');
-const logger = require('../utils/logger');
 const { uploadImage } = require('../utils/cloudinary');
 const {
   productCreateSchema,
   productUpdateSchema,
   productBulkRowSchema,
 } = require('../utils/validators');
+
+let xlsxLib = null;
+
+const getXlsx = () => {
+  if (!xlsxLib) {
+    xlsxLib = require('xlsx');
+  }
+  return xlsxLib;
+};
 
 const sellerId = (req) => req.user._id;
 
@@ -18,6 +25,82 @@ function normalizeKeys(row) {
   }
   return out;
 }
+
+const BULK_FIELD_ALIASES = {
+  productName: ['productname', 'product', 'name'],
+  description: ['description', 'details'],
+  category: ['category'],
+  price: ['price'],
+  discountPrice: ['discountprice', 'discount'],
+  skuCode: ['skucode', 'sku'],
+  stockQuantity: ['stockquantity', 'stock', 'quantity'],
+  variants: ['variants', 'variant'],
+  productImages: ['productimages', 'images', 'imageurls', 'imageurl'],
+};
+
+const getColumnLabel = (index) => {
+  let n = index + 1;
+  let label = '';
+
+  while (n > 0) {
+    const remainder = (n - 1) % 26;
+    label = String.fromCharCode(65 + remainder) + label;
+    n = Math.floor((n - 1) / 26);
+  }
+
+  return label;
+};
+
+const buildHeaderMeta = (sheet, xlsx) => {
+  const grid = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  const headerRow = Array.isArray(grid[0]) ? grid[0] : [];
+  const normalized = new Map();
+
+  headerRow.forEach((cell, index) => {
+    const header = String(cell ?? '').trim();
+    if (!header) {
+      return;
+    }
+
+    const key = header.toLowerCase().replace(/\s+/g, '');
+    if (!normalized.has(key)) {
+      normalized.set(key, {
+        header,
+        index,
+        label: getColumnLabel(index),
+      });
+    }
+  });
+
+  return normalized;
+};
+
+const resolveFieldColumn = (headerMeta, fieldName) => {
+  const aliases = BULK_FIELD_ALIASES[fieldName] || [];
+  for (const alias of aliases) {
+    if (headerMeta.has(alias)) {
+      return headerMeta.get(alias);
+    }
+  }
+  return null;
+};
+
+const getFieldValue = (normalizedRow, aliases) => {
+  for (const alias of aliases) {
+    if (Object.prototype.hasOwnProperty.call(normalizedRow, alias)) {
+      return normalizedRow[alias];
+    }
+  }
+  return '';
+};
+
+const formatColumnRef = (fieldColumns, fieldName) => {
+  const meta = fieldColumns[fieldName];
+  if (!meta) {
+    return `Missing column (${fieldName})`;
+  }
+  return `${meta.label} (${meta.header})`;
+};
 
 function parseVariantsCell(raw) {
   if (raw == null || raw === '') return [];
@@ -73,43 +156,54 @@ function buildAutoSku(rowNum) {
   return `AUTO-${Date.now().toString(36).toUpperCase()}-${rowNum}-${randomToken(4)}`;
 }
 
-function applyBulkFallbacks(rawData, rowNum) {
+function applyBulkFallbacks(rawData, rowNum, fieldColumns) {
   const data = { ...rawData };
   const rowWarnings = [];
 
+  const pushWarning = (field, message, autoValue) => {
+    rowWarnings.push({
+      row: rowNum,
+      column: formatColumnRef(fieldColumns, field),
+      field,
+      productName: data.productName || `Row ${rowNum}`,
+      message,
+      autoValue,
+    });
+  };
+
   if (!data.productName || !String(data.productName).trim()) {
     data.productName = `Imported Product ${rowNum}-${randomToken(3)}`;
-    rowWarnings.push(`productName missing, auto-filled: ${data.productName}`);
+    pushWarning('productName', 'Required value missing. Dummy value generated.', data.productName);
   }
 
   if (!data.description || !String(data.description).trim()) {
     data.description = `Auto-generated description for imported product row ${rowNum}.`;
-    rowWarnings.push('description missing, auto-filled default description');
+    pushWarning('description', 'Required value missing. Dummy value generated.', data.description);
   }
 
   if (!data.category || !String(data.category).trim()) {
     data.category = 'General';
-    rowWarnings.push('category missing, auto-filled: General');
+    pushWarning('category', 'Required value missing. Dummy value generated.', data.category);
   }
 
   if (!Number.isFinite(data.price) || data.price < 0) {
     data.price = randomInt(10, 500);
-    rowWarnings.push(`price missing/invalid, auto-filled: ${data.price}`);
+    pushWarning('price', 'Required value missing or invalid. Dummy value generated.', data.price);
   }
 
   if (!data.skuCode || !String(data.skuCode).trim()) {
     data.skuCode = buildAutoSku(rowNum);
-    rowWarnings.push(`skuCode missing, auto-filled: ${data.skuCode}`);
+    pushWarning('skuCode', 'Required value missing. Dummy value generated.', data.skuCode);
   }
 
   if (!Number.isInteger(data.stockQuantity) || data.stockQuantity < 0) {
     data.stockQuantity = randomInt(1, 50);
-    rowWarnings.push(`stockQuantity missing/invalid, auto-filled: ${data.stockQuantity}`);
+    pushWarning('stockQuantity', 'Required value missing or invalid. Dummy value generated.', data.stockQuantity);
   }
 
   if (data.discountPrice != null && (!Number.isFinite(data.discountPrice) || data.discountPrice < 0)) {
     data.discountPrice = null;
-    rowWarnings.push('discountPrice invalid, cleared to null');
+    pushWarning('discountPrice', 'Invalid value detected. Cleared to null.', null);
   }
 
   if (
@@ -118,7 +212,7 @@ function applyBulkFallbacks(rawData, rowNum) {
     data.discountPrice > data.price
   ) {
     data.discountPrice = Number(Math.max(0, data.price * 0.8).toFixed(2));
-    rowWarnings.push(`discountPrice exceeded price, adjusted to ${data.discountPrice}`);
+    pushWarning('discountPrice', 'Discount exceeded price. Value adjusted automatically.', data.discountPrice);
   }
 
   if (!Array.isArray(data.variants)) {
@@ -132,28 +226,47 @@ function applyBulkFallbacks(rawData, rowNum) {
   return { data, rowWarnings };
 }
 
-function coerceExcelRow(row) {
+function coerceExcelRow(row, headerMeta) {
   const n = normalizeKeys(row);
-  const price = n.price !== '' && n.price != null ? Number(n.price) : NaN;
-  const disc = n.discountprice ?? n.discount;
+  const get = (fieldName) => getFieldValue(n, BULK_FIELD_ALIASES[fieldName] || []);
+
+  const priceRaw = get('price');
+  const discountRaw = get('discountPrice');
+  const stockRaw = get('stockQuantity');
+
+  const price = priceRaw !== '' && priceRaw != null ? Number(priceRaw) : NaN;
   let discountPrice = null;
-  if (disc !== '' && disc != null && !Number.isNaN(Number(disc))) {
-    discountPrice = Number(disc);
+  if (discountRaw !== '' && discountRaw != null && !Number.isNaN(Number(discountRaw))) {
+    discountPrice = Number(discountRaw);
   }
-  const stockRaw = n.stockquantity ?? n.stock;
   const stockQuantity =
     stockRaw !== '' && stockRaw != null ? parseInt(String(stockRaw), 10) : NaN;
 
+  const fieldColumns = {
+    productName: resolveFieldColumn(headerMeta, 'productName'),
+    description: resolveFieldColumn(headerMeta, 'description'),
+    category: resolveFieldColumn(headerMeta, 'category'),
+    price: resolveFieldColumn(headerMeta, 'price'),
+    discountPrice: resolveFieldColumn(headerMeta, 'discountPrice'),
+    variants: resolveFieldColumn(headerMeta, 'variants'),
+    skuCode: resolveFieldColumn(headerMeta, 'skuCode'),
+    stockQuantity: resolveFieldColumn(headerMeta, 'stockQuantity'),
+    productImages: resolveFieldColumn(headerMeta, 'productImages'),
+  };
+
   return {
-    productName: n.productname != null ? String(n.productname).trim() : '',
-    description: n.description != null ? String(n.description).trim() : '',
-    category: n.category != null ? String(n.category).trim() : '',
-    price,
-    discountPrice,
-    variants: parseVariantsCell(n.variants),
-    skuCode: n.skucode != null ? String(n.skucode).trim() : '',
-    stockQuantity,
-    productImages: parseImagesCell(n.productimages ?? n.images),
+    data: {
+      productName: String(get('productName') ?? '').trim(),
+      description: String(get('description') ?? '').trim(),
+      category: String(get('category') ?? '').trim(),
+      price,
+      discountPrice,
+      variants: parseVariantsCell(get('variants')),
+      skuCode: String(get('skuCode') ?? '').trim(),
+      stockQuantity,
+      productImages: parseImagesCell(get('productImages')),
+    },
+    fieldColumns,
   };
 }
 
@@ -268,6 +381,7 @@ const bulkProductsFromExcel = async (req, res, next) => {
       return next(new Error('Excel file is required (field name: file)'));
     }
 
+    const XLSX = getXlsx();
     const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
@@ -275,69 +389,138 @@ const bulkProductsFromExcel = async (req, res, next) => {
       return next(new Error('Workbook is empty'));
     }
     const sheet = workbook.Sheets[sheetName];
+    const headerMeta = buildHeaderMeta(sheet, XLSX);
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
     const created = [];
     const errors = [];
     const warnings = [];
     const skuBatch = new Set();
+    const validRows = [];
+    const currentSellerId = sellerId(req);
 
     for (let i = 0; i < rows.length; i++) {
       const rowNum = i + 2;
-      const coerced = coerceExcelRow(rows[i]);
-      const { data: preparedRow, rowWarnings } = applyBulkFallbacks(coerced, rowNum);
+      const { data: coerced, fieldColumns } = coerceExcelRow(rows[i], headerMeta);
+      const { data: preparedRow, rowWarnings } = applyBulkFallbacks(coerced, rowNum, fieldColumns);
+      if (rowWarnings.length > 0) {
+        warnings.push(...rowWarnings);
+      }
+
       const parsed = productBulkRowSchema.safeParse(preparedRow);
       if (!parsed.success) {
-        errors.push({
-          row: rowNum,
-          message: parsed.error.issues.map((x) => x.message).join('; '),
+        parsed.error.issues.forEach((issue) => {
+          const issueField = typeof issue.path?.[0] === 'string' ? issue.path[0] : 'row';
+          errors.push({
+            row: rowNum,
+            column: formatColumnRef(fieldColumns, issueField),
+            field: issueField,
+            productName: preparedRow.productName || `Row ${rowNum}`,
+            message: issue.message,
+          });
         });
         continue;
       }
 
       const data = parsed.data;
 
-      if (rowWarnings.length > 0) {
-        warnings.push({
-          row: rowNum,
-          message: rowWarnings.join('; '),
-        });
-      }
-
       if (skuBatch.has(data.skuCode)) {
-        errors.push({ row: rowNum, message: `Duplicate SKU in file: ${data.skuCode}` });
-        continue;
-      }
-      skuBatch.add(data.skuCode);
-
-      const exists = await Product.findOne({ skuCode: data.skuCode });
-      if (exists) {
-        errors.push({ row: rowNum, message: `SKU already exists: ${data.skuCode}` });
-        continue;
-      }
-
-      try {
-        const product = await Product.create({
-          ...data,
-          sellerId: sellerId(req),
+        errors.push({
+          row: rowNum,
+          column: formatColumnRef(fieldColumns, 'skuCode'),
+          field: 'skuCode',
+          productName: data.productName,
+          message: `Duplicate SKU in file: ${data.skuCode}`,
         });
-        created.push(product);
-      } catch (err) {
-        if (err.code === 11000) {
-          errors.push({ row: rowNum, message: `SKU already exists: ${data.skuCode}` });
-        } else {
-          logger.error('Bulk row create failed', err);
-          errors.push({ row: rowNum, message: err.message || 'Save failed' });
+        continue;
+      }
+
+      skuBatch.add(data.skuCode);
+      validRows.push({
+        rowNum,
+        data,
+        fieldColumns,
+      });
+    }
+
+    if (validRows.length > 0) {
+      const existingSkuDocs = await Product.find({
+        skuCode: { $in: validRows.map((entry) => entry.data.skuCode) },
+      })
+        .select('skuCode -_id')
+        .lean();
+
+      const existingSkuSet = new Set(existingSkuDocs.map((doc) => doc.skuCode));
+
+      const rowsToInsert = [];
+      const rowBySku = new Map();
+
+      validRows.forEach((entry) => {
+        if (existingSkuSet.has(entry.data.skuCode)) {
+          errors.push({
+            row: entry.rowNum,
+            column: formatColumnRef(entry.fieldColumns, 'skuCode'),
+            field: 'skuCode',
+            productName: entry.data.productName,
+            message: `SKU already exists: ${entry.data.skuCode}`,
+          });
+          return;
+        }
+
+        rowsToInsert.push({
+          ...entry.data,
+          sellerId: currentSellerId,
+        });
+        rowBySku.set(entry.data.skuCode, entry);
+      });
+
+      if (rowsToInsert.length > 0) {
+        try {
+          const insertedDocs = await Product.insertMany(rowsToInsert, { ordered: false });
+          created.push(...insertedDocs);
+        } catch (err) {
+          if (Array.isArray(err.insertedDocs) && err.insertedDocs.length > 0) {
+            created.push(...err.insertedDocs);
+          }
+
+          if (Array.isArray(err.writeErrors) && err.writeErrors.length > 0) {
+            err.writeErrors.forEach((writeError) => {
+              const op =
+                writeError?.err?.op ||
+                (typeof writeError?.getOperation === 'function' ? writeError.getOperation() : null) ||
+                writeError?.op;
+
+              const opSku = op?.skuCode;
+              const rowMeta = opSku ? rowBySku.get(opSku) : null;
+
+              errors.push({
+                row: rowMeta?.rowNum || 0,
+                column: formatColumnRef(rowMeta?.fieldColumns || {}, 'skuCode'),
+                field: 'skuCode',
+                productName: rowMeta?.data?.productName || 'Unknown Product',
+                message:
+                  writeError?.errmsg ||
+                  writeError?.err?.errmsg ||
+                  writeError?.message ||
+                  'Bulk insert error',
+              });
+            });
+          } else {
+            throw err;
+          }
         }
       }
     }
+
+    const failedRows = new Set(errors.map((issue) => issue.row).filter((row) => row > 0)).size;
+    const unknownFailures = errors.filter((issue) => !issue.row || issue.row <= 0).length;
 
     res.status(200).json({
       success: true,
       summary: {
         totalRows: rows.length,
         created: created.length,
-        failed: errors.length,
+        failed: failedRows + unknownFailures,
         warned: warnings.length,
       },
       created,

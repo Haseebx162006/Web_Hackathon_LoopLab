@@ -4,27 +4,44 @@ const Product = require('../models/Product');
 
 const getDashboard = async (req, res, next) => {
   try {
-    const sellerId = req.user._id;
+    const sid = new mongoose.Types.ObjectId(req.user._id);
 
-    // 1. Calculate Total Sales Summary & Total Orders
-    const orders = await Order.find({ sellerId });
-    
-    const totalOrders = orders.length;
-    
-    // Sum only completed/delivered order amounts
-    const totalSales = orders
-      .filter(order => order.status === 'delivered')
-      .reduce((sum, order) => sum + order.totalAmount, 0);
+    const summaryRows = await Order.aggregate([
+      { $match: { sellerId: sid } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          pendingOrders: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'pending'] }, 1, 0],
+            },
+          },
+          totalSales: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'delivered'] }, '$totalAmount', 0],
+            },
+          },
+        },
+      },
+    ]);
 
-    // 2. Count Pending Orders
-    const pendingOrders = orders.filter(order => order.status === 'pending').length;
+    const summary = summaryRows[0] || {
+      totalOrders: 0,
+      pendingOrders: 0,
+      totalSales: 0,
+    };
 
     // 3. Find Low Stock Alerts (Stock < 10 threshold)
     const lowStockThreshold = Number(process.env.LOW_STOCK_THRESHOLD) || 10;
     const lowStock = await Product.find({
-      sellerId,
+      sellerId: req.user._id,
       stockQuantity: { $lt: lowStockThreshold },
-    }).select('productName stockQuantity price');
+    })
+      .select('productName stockQuantity price')
+      .sort({ stockQuantity: 1 })
+      .limit(20)
+      .lean();
 
     // 4. Calculate Sales Graph Data (Recent 7 Days for Example)
     // Aggregating sales amount day by day for front-end charts
@@ -34,7 +51,7 @@ const getDashboard = async (req, res, next) => {
     const salesGraphData = await Order.aggregate([
       {
         $match: {
-          sellerId: new mongoose.Types.ObjectId(sellerId),
+          sellerId: sid,
           status: 'delivered', // Only counting completed sales
           createdAt: { $gte: sevenDaysAgo }
         }
@@ -51,9 +68,9 @@ const getDashboard = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        totalSales,
-        totalOrders,
-        pendingOrders,
+        totalSales: summary.totalSales || 0,
+        totalOrders: summary.totalOrders || 0,
+        pendingOrders: summary.pendingOrders || 0,
         lowStock,
         salesGraphData
       }

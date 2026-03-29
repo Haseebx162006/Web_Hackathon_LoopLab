@@ -15,11 +15,13 @@ const getBuyerOrders = async (req, res, next) => {
     const filter = { buyerId: req.user._id };
     const [orders, total] = await Promise.all([
       Order.find(filter)
+        .select('sellerId items totalAmount status trackingId returnStatus refundStatus shippingAddress createdAt updatedAt')
         .populate('sellerId', 'storeName')
         .populate('items.product', 'productName productImages price discountPrice category stockQuantity')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Order.countDocuments(filter),
     ]);
 
@@ -64,7 +66,9 @@ const requestOrderReturn = async (req, res, next) => {
 
 const getBuyerProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .lean();
     if (!user) {
       res.status(404);
       return next(new Error('Buyer profile not found'));

@@ -105,7 +105,18 @@ const ProductDetailPage = () => {
   const [addReview, { isLoading: submittingReview }] = useAddBuyerReviewMutation();
   const [updateSellerProfile, { isLoading: updatingStoreProfile }] = useUpdateSellerProfileMutation();
 
-  const sellerInfo = useMemo(() => {
+  const storeInfo = useMemo(() => {
+    const storeFromResponse = detailsResponse?.data?.store;
+
+    if (storeFromResponse && typeof storeFromResponse === 'object') {
+      return storeFromResponse as {
+        _id?: string;
+        storeName?: string;
+        storeLogo?: string;
+        storeFaqs?: SellerStoreFaq[];
+      };
+    }
+
     if (!product || typeof product.sellerId !== 'object' || !product.sellerId) {
       return null;
     }
@@ -116,17 +127,17 @@ const ProductDetailPage = () => {
       storeLogo?: string;
       storeFaqs?: SellerStoreFaq[];
     };
-  }, [product]);
+  }, [detailsResponse?.data?.store, product]);
 
   const productSellerId =
-    sellerInfo?._id ?? (typeof product?.sellerId === 'string' ? product.sellerId : undefined);
+    storeInfo?._id ?? (typeof product?.sellerId === 'string' ? product.sellerId : undefined);
   const viewerSellerId = user?._id || sellerProfileResponse?.data?._id;
   const isStoreOwner = Boolean(
     isSellerSession && productSellerId && viewerSellerId && productSellerId === viewerSellerId
   );
 
   useEffect(() => {
-    const nextFaqs = normalizeStoreFaqs(sellerInfo?.storeFaqs);
+    const nextFaqs = normalizeStoreFaqs(storeInfo?.storeFaqs);
 
     setStoreFaqs((previousFaqs) => {
       const previousSnapshot = JSON.stringify(
@@ -138,7 +149,7 @@ const ProductDetailPage = () => {
 
       return previousSnapshot === nextSnapshot ? previousFaqs : nextFaqs;
     });
-  }, [sellerInfo?.storeFaqs]);
+  }, [storeInfo?.storeFaqs]);
 
   const wishedIds = useMemo(() => {
     const items = wishlistResponse?.data?.items ?? [];
@@ -452,22 +463,22 @@ const ProductDetailPage = () => {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 border border-zinc-100">
-                    {sellerInfo?.storeLogo ? (
+                    {storeInfo?.storeLogo ? (
                       <img
-                        src={sellerInfo.storeLogo}
+                        src={storeInfo.storeLogo}
                         alt="Store Logo"
                         className="h-full w-full object-cover"
                       />
                     ) : (
                       <span className="text-2xl font-black text-zinc-300 uppercase">
-                        {sellerInfo?.storeName?.[0] || 'S'}
+                        {storeInfo?.storeName?.[0] || 'S'}
                       </span>
                     )}
                   </div>
                   <div>
                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Brand Boutique</p>
                     <h3 className="text-xl font-black uppercase tracking-tight text-zinc-900">
-                      {sellerInfo?.storeName || 'Verified Store'}
+                      {storeInfo?.storeName || 'Verified Store'}
                     </h3>
                   </div>
                 </div>

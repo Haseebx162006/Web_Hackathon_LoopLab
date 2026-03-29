@@ -12,7 +12,12 @@ const checkoutCart = async (req, res, next) => {
   try {
     const { shippingAddress, paymentMethod } = checkoutSchema.parse(req.body);
 
-    const cart = await Cart.findOne({ buyerId: req.user._id }).populate('items.product').session(session);
+    const cart = await Cart.findOne({ buyerId: req.user._id })
+      .populate({
+        path: 'items.product',
+        select: 'sellerId price discountPrice stockQuantity productName status',
+      })
+      .session(session);
     if (!cart || cart.items.length === 0) {
       res.status(400);
       return next(new Error('Cart is empty'));
@@ -23,6 +28,12 @@ const checkoutCart = async (req, res, next) => {
 
     for (const item of cart.items) {
       const product = item.product;
+
+      if (!product || product.status !== 'approved') {
+        res.status(400);
+        throw new Error('One or more products in cart are no longer available');
+      }
+
       const sellerIdStr = product.sellerId.toString();
 
       if (!ordersBySeller[sellerIdStr]) {

@@ -19,19 +19,19 @@ const addReview = async (req, res, next) => {
     }
 
     // Verify buyer purchased it
-    const order = await Order.findOne({
+    const hasDeliveredOrder = await Order.exists({
       buyerId: req.user._id,
       'items.product': productId,
       status: 'delivered',
     });
 
-    if (!order) {
+    if (!hasDeliveredOrder) {
       res.status(403);
       return next(new Error('You can only review products you have purchased and received'));
     }
 
-    const existingReview = await Review.findOne({ product: productId, buyerId: req.user._id });
-    if (existingReview) {
+    const alreadyReviewed = await Review.exists({ product: productId, buyerId: req.user._id });
+    if (alreadyReviewed) {
       res.status(400);
       return next(new Error('You have already reviewed this product'));
     }

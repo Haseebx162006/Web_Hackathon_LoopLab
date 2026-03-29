@@ -1,15 +1,16 @@
 const mongoose = require('mongoose');
 const Product = require('../models/Product');
 const Review = require('../models/Review');
+const User = require('../models/User');
 
-const getPublicStatuses = async () => {
-  const approvedExists = await Product.exists({ status: 'approved' });
-  if (approvedExists) {
-    return ['approved'];
-  }
+const PUBLIC_STATUSES =
+  process.env.PUBLIC_INCLUDE_PENDING_PRODUCTS === 'true' || process.env.NODE_ENV !== 'production'
+    ? ['approved', 'pending']
+    : ['approved'];
 
-  return ['approved', 'pending'];
-};
+const getPublicStatuses = () => PUBLIC_STATUSES;
+
+const escapeRegex = (input = '') => input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const attachRatings = async (products) => {
   if (!products || products.length === 0) {
@@ -58,17 +59,18 @@ const attachRatings = async (products) => {
 
 const getHomeData = async (req, res, next) => {
   try {
-    const statuses = await getPublicStatuses();
+    const statuses = getPublicStatuses();
 
-    const featuredProducts = await Product.find({ status: { $in: statuses } })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select('productName price discountPrice productImages category skuCode stockQuantity')
-      .lean();
+    const [featuredProducts, categories] = await Promise.all([
+      Product.find({ status: { $in: statuses } })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .select('productName price discountPrice productImages category skuCode stockQuantity')
+        .lean(),
+      Product.distinct('category', { status: { $in: statuses } }),
+    ]);
 
     const featuredWithRatings = await attachRatings(featuredProducts);
-
-    const categories = await Product.distinct('category', { status: { $in: statuses } });
 
     res.status(200).json({
       success: true,
@@ -86,11 +88,13 @@ const getHomeData = async (req, res, next) => {
 const searchProducts = async (req, res, next) => {
   try {
     const { search, category, sellerId, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
-    const statuses = await getPublicStatuses();
+    const statuses = getPublicStatuses();
     const query = { status: { $in: statuses } };
+    const pageNumber = Math.max(1, Number(page) || 1);
+    const limitNumber = Math.min(50, Math.max(1, Number(limit) || 20));
 
     if (search) {
-      query.productName = { $regex: search, $options: 'i' };
+      query.productName = { $regex: escapeRegex(String(search).trim()), $options: 'i' };
     }
     if (category) {
       query.category = category;
@@ -108,19 +112,20 @@ const searchProducts = async (req, res, next) => {
     if (sort === 'price_asc') sortQuery = { price: 1 };
     if (sort === 'price_desc') sortQuery = { price: -1 };
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const skip = (pageNumber - 1) * limitNumber;
 
-    const products = await Product.find(query)
-      .sort(sortQuery)
-      .skip(skip)
-      .limit(Number(limit))
-      .populate('sellerId', 'storeName storeLogo')
-      .select('productName price discountPrice productImages category skuCode stockQuantity sellerId')
-      .lean();
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .sort(sortQuery)
+        .skip(skip)
+        .limit(limitNumber)
+        .populate('sellerId', 'storeName storeLogo')
+        .select('productName price discountPrice productImages category skuCode stockQuantity sellerId')
+        .lean(),
+      Product.countDocuments(query),
+    ]);
 
     const productsWithRatings = await attachRatings(products);
-
-    const total = await Product.countDocuments(query);
 
     res.status(200).json({
       success: true,
@@ -128,8 +133,8 @@ const searchProducts = async (req, res, next) => {
         products: productsWithRatings,
         pagination: {
           total,
-          page: Number(page),
-          pages: Math.ceil(total / Number(limit)),
+          page: pageNumber,
+          pages: Math.ceil(total / limitNumber),
         }
       }
     });
@@ -141,30 +146,74 @@ const searchProducts = async (req, res, next) => {
 const getProductDetails = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const statuses = await getPublicStatuses();
+    const statuses = getPublicStatuses();
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       res.status(400);
       return next(new Error('Invalid product id'));
     }
 
-    const product = await Product.findById(id).populate('sellerId', 'storeName storeLogo storeFaqs');
+    const product = await Product.findById(id)
+      .populate('sellerId', 'storeName storeLogo storeFaqs')
+      .lean();
     if (!product || !statuses.includes(product.status)) {
       res.status(404);
       return next(new Error('Product not found'));
     }
 
-    const reviews = await Review.find({ product: id }).populate('buyerId', 'name').sort({ createdAt: -1 }).limit(10);
+    let store = null;
 
-    let avgRating = 0;
-    if (reviews.length > 0) {
-      avgRating = reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length;
+    if (product.sellerId && typeof product.sellerId === 'object' && product.sellerId._id) {
+      store = {
+        _id: String(product.sellerId._id),
+        storeName: product.sellerId.storeName,
+        storeLogo: product.sellerId.storeLogo,
+        storeFaqs: Array.isArray(product.sellerId.storeFaqs) ? product.sellerId.storeFaqs : [],
+      };
+    } else if (product.sellerId && mongoose.Types.ObjectId.isValid(String(product.sellerId))) {
+      const seller = await User.findById(product.sellerId)
+        .select('storeName storeLogo storeFaqs')
+        .lean();
+
+      if (seller) {
+        store = {
+          _id: String(seller._id),
+          storeName: seller.storeName,
+          storeLogo: seller.storeLogo,
+          storeFaqs: Array.isArray(seller.storeFaqs) ? seller.storeFaqs : [],
+        };
+      }
     }
+
+    const productData = { ...product };
+    if (store) {
+      productData.sellerId = store;
+    }
+
+    const [reviews, ratingRows] = await Promise.all([
+      Review.find({ product: id })
+        .populate('buyerId', 'name')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+      Review.aggregate([
+        { $match: { product: new mongoose.Types.ObjectId(id) } },
+        {
+          $group: {
+            _id: null,
+            avgRating: { $avg: '$rating' },
+          },
+        },
+      ]),
+    ]);
+
+    const avgRating = Number((ratingRows[0]?.avgRating || 0).toFixed(1));
 
     res.status(200).json({
       success: true,
       data: {
-        product,
+        product: productData,
+        store,
         reviews,
         avgRating,
       }
@@ -176,7 +225,6 @@ const getProductDetails = async (req, res, next) => {
 
 const getPublicStores = async (req, res, next) => {
   try {
-    const User = mongoose.model('User');
     const sellers = await User.find({
       role: 'seller',
       status: 'active',
@@ -184,6 +232,13 @@ const getPublicStores = async (req, res, next) => {
     })
       .select('storeName storeLogo storeDescription createdAt')
       .lean();
+
+    if (sellers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+      });
+    }
 
     const storeIds = sellers.map(s => s._id);
     const productCounts = await Product.aggregate([

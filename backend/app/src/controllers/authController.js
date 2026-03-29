@@ -7,11 +7,14 @@ const { signupSchema, loginSchema, sellerLoginSchema } = require('../utils/valid
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const signup = async (req, res, next) => {
   try {
     const validatedData = signupSchema.parse(req.body);
+    const normalizedEmail = validatedData.email.toLowerCase().trim();
 
-    const userExists = await User.findOne({ email: validatedData.email });
+    const userExists = await User.findOne({ email: normalizedEmail }).select('_id').lean();
     if (userExists) {
       res.status(400);
       throw new Error('User already exists');
@@ -21,7 +24,7 @@ const signup = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(validatedData.password, salt);
 
     const userData = {
-      email: validatedData.email,
+      email: normalizedEmail,
       password: hashedPassword,
       role: validatedData.role,
       oauthProvider: null,
@@ -62,8 +65,11 @@ const signup = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const validatedData = loginSchema.parse(req.body);
+    const normalizedEmail = validatedData.email.toLowerCase().trim();
 
-    const user = await User.findOne({ email: validatedData.email }).select('+password');
+    const user = await User.findOne({ email: normalizedEmail })
+      .select('_id name email role status password')
+      .select('+password');
     if (!user) {
       res.status(401);
       throw new Error('Invalid email or password');
@@ -85,7 +91,7 @@ const login = async (req, res, next) => {
       throw new Error('Invalid email or password');
     }
 
-    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
+    User.updateOne({ _id: user._id }, { lastLogin: new Date() }).catch(() => {});
 
     res.status(200).json({
       success: true,
@@ -109,12 +115,16 @@ const login = async (req, res, next) => {
 const sellerLogin = async (req, res, next) => {
   try {
     const validatedData = sellerLoginSchema.parse(req.body);
+    const normalizedCredential = validatedData.emailOrPhone.trim();
+    const isEmail = EMAIL_REGEX.test(normalizedCredential);
 
-    // Finding user by email OR phone number where role is 'seller'
-    const user = await User.findOne({
-      $or: [{ email: validatedData.emailOrPhone }, { phoneNumber: validatedData.emailOrPhone }],
-      role: 'seller'
-    }).select('+password');
+    const sellerFilter = isEmail
+      ? { email: normalizedCredential.toLowerCase(), role: 'seller' }
+      : { phoneNumber: normalizedCredential, role: 'seller' };
+
+    const user = await User.findOne(sellerFilter)
+      .select('_id storeName email role status password')
+      .select('+password');
 
     if (!user) {
       res.status(401);
@@ -137,7 +147,7 @@ const sellerLogin = async (req, res, next) => {
       throw new Error('Invalid credentials or not a seller account');
     }
 
-    await User.updateOne({ _id: user._id }, { lastLogin: new Date() });
+    User.updateOne({ _id: user._id }, { lastLogin: new Date() }).catch(() => {});
 
     res.status(200).json({
       success: true,

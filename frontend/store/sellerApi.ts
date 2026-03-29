@@ -270,10 +270,17 @@ export interface BulkProductsResponse {
   created: SellerProduct[];
   warnings?: Array<{
     row: number;
+    column?: string;
+    field?: string;
+    productName?: string;
+    autoValue?: string | number | null;
     message: string;
   }>;
   errors: Array<{
     row: number;
+    column?: string;
+    field?: string;
+    productName?: string;
     message: string;
   }>;
 }
@@ -518,7 +525,7 @@ export const sellerApi = apiSlice.injectEndpoints({
         method: 'PUT',
         body: buildProfileFormData(payload),
       }),
-      invalidatesTags: ['SellerProfile'],
+      invalidatesTags: ['SellerProfile', 'BuyerSellerSummary', 'BuyerProduct'],
     }),
 
     changeSellerPassword: builder.mutation<{ success: boolean; message: string }, SellerPasswordChangePayload>(

@@ -5,6 +5,57 @@ const Product = require('../models/Product');
 const logger = require('../utils/logger');
 const { checkoutSchema } = require('../utils/validators');
 const { uploadImage } = require('../utils/cloudinary');
+const stripe = require('../utils/stripe');
+
+const createPaymentIntent = async (req, res, next) => {
+  try {
+    const cart = await Cart.findOne({ buyerId: req.user._id }).populate({
+      path: 'items.product',
+      select: 'price discountPrice status'
+    }).lean();
+
+    if (!cart || cart.items.length === 0) {
+      res.status(400);
+      return next(new Error('Cart is empty'));
+    }
+
+    let subtotal = 0;
+    for (const item of cart.items) {
+      if (!item.product || item.product.status !== 'approved') {
+        res.status(400);
+        return next(new Error('One or more products in cart are unavailable'));
+      }
+      const price = item.product.discountPrice != null ? item.product.discountPrice : item.product.price;
+      subtotal += price * item.quantity;
+    }
+
+    // Typical ecommerce logic: subtotal + tax + shipping
+    // Just replicating standard math. Subtotal is in USD for example.
+    let estimatedShipping = subtotal > 120 ? 0 : 9.99;
+    let tax = subtotal * 0.05;
+    let total = subtotal + estimatedShipping + tax;
+
+    // Stripe expects amount in cents
+    const amountInCents = Math.round(total * 100);
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: 'usd',
+      metadata: {
+        userId: req.user._id.toString()
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        clientSecret: paymentIntent.client_secret
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 const checkoutCart = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -77,9 +128,11 @@ const checkoutCart = async (req, res, next) => {
         status = 'payment_pending';
         paymentStatus = 'pending_verification';
       } else if (paymentMethod === 'card' || paymentMethod === 'wallet') {
-        // These will be updated via webhook/wallet logic
         status = 'payment_pending';
         paymentStatus = 'unpaid';
+      } else if (paymentMethod === 'stripe') {
+        status = 'processing';
+        paymentStatus = 'paid';
       }
 
       const newOrder = await Order.create([{
@@ -216,6 +269,7 @@ const verifyPayment = async (req, res, next) => {
 };
 
 module.exports = {
+  createPaymentIntent,
   checkoutCart,
   mockPaymentWebhook,
   verifyPayment,

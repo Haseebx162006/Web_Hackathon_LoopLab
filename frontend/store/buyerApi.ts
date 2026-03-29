@@ -478,6 +478,13 @@ export const buyerApi = apiSlice.injectEndpoints({
         };
       },
     }),
+
+    createPaymentIntent: builder.mutation<ApiResponse<{ clientSecret: string }>, void>({
+      query: () => ({
+        url: '/checkout/create-payment-intent',
+        method: 'POST',
+      }),
+    }),
   }),
   overrideExisting: true,
 });
@@ -507,5 +514,6 @@ export const {
   useRemoveBuyerAddressMutation,
   useSetBuyerDefaultAddressMutation,
   useUploadPaymentProofMutation,
+  useCreatePaymentIntentMutation,
   useGetPublicStoresQuery,
 } = buyerApi;

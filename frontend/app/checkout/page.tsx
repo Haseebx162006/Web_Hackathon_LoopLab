@@ -14,8 +14,14 @@ import {
   useUpdateBuyerProfileMutation,
   useAddBuyerAddressMutation,
   useUploadPaymentProofMutation,
+  useCreatePaymentIntentMutation,
   type BuyerAddress
 } from '@/store/buyerApi';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import StripePaymentForm from '@/components/buyer/StripePaymentForm';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy');
 import BuyerAuthGate from '@/components/buyer/BuyerAuthGate';
 import BuyerEmptyState from '@/components/buyer/BuyerEmptyState';
 import BuyerErrorState from '@/components/buyer/BuyerErrorState';
@@ -91,7 +97,11 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'wallet' | 'boutique_account' | 'stripe'>('card');
   const [isVerifyingPayment, setIsVerifyingPayment] = useState(false);
   const [paymentProofFiles, setPaymentProofFiles] = useState<Record<string, File>>({});
-
+  
+  const [isStripeModalOpen, setIsStripeModalOpen] = useState(false);
+  const [stripeClientSecret, setStripeClientSecret] = useState('');
+  
+  const [createPaymentIntent, { isLoading: creatingIntent }] = useCreatePaymentIntentMutation();
   const [uploadProof, { isLoading: uploadingProof }] = useUploadPaymentProofMutation();
 
   // Sync profile data once loaded
@@ -229,6 +239,17 @@ const CheckoutPage = () => {
 
     if (paymentMethod === 'boutique_account') {
       setIsVerifyingPayment(true);
+      return;
+    }
+    
+    if (paymentMethod === 'stripe') {
+      try {
+        const res = await createPaymentIntent().unwrap();
+        setStripeClientSecret(res.data.clientSecret);
+        setIsStripeModalOpen(true);
+      } catch (err) {
+        toast.error(normalizeApiError(err, 'Failed to initialize secure payment.'));
+      }
       return;
     }
 
@@ -427,10 +448,10 @@ const CheckoutPage = () => {
                       <div className="pt-6">
                         <button
                           type="submit"
-                          disabled={placingOrder}
+                          disabled={placingOrder || creatingIntent}
                           className="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-black px-6 py-5 text-[10px] font-black uppercase tracking-[0.3em] text-white transition-all hover:bg-zinc-800 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] disabled:bg-zinc-300"
                         >
-                          {placingOrder ? 'Authenticating...' : paymentMethod === 'cod' ? 'Confirm & Place Order' : 'Authorize Final Transaction'}
+                          {placingOrder || creatingIntent ? 'Authenticating...' : paymentMethod === 'cod' ? 'Confirm & Place Order' : 'Authorize Final Transaction'}
                         </button>
                         <div className="mt-6 flex items-center justify-center gap-2 text-[8px] font-black uppercase tracking-widest text-zinc-400">
                           <IoShieldCheckmarkOutline className="text-xs" />
@@ -812,6 +833,53 @@ const CheckoutPage = () => {
                         </div>
                      </div>
                    </motion.div>
+                 </div>
+               )}
+            </AnimatePresence>,
+            document.body
+          )}
+
+          {/* Stripe Setup Modal */}
+          {isMounted && createPortal(
+            <AnimatePresence>
+               {isStripeModalOpen && stripeClientSecret && (
+                 <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setIsStripeModalOpen(false)}
+                      className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity"
+                    />
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0, y: 40 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 0.95, opacity: 0, y: 40 }}
+                      className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] bg-white shadow-2xl shadow-black/40 ring-1 ring-zinc-200"
+                    >
+                      <div className="flex items-center justify-between border-b border-zinc-100 bg-zinc-50/50 px-8 py-6 backdrop-blur-sm">
+                         <div className="space-y-1">
+                            <h3 className="text-xl font-semibold tracking-tight text-zinc-900">Credit / Debit Card</h3>
+                            <p className="text-xs font-medium text-zinc-500">Secure end-to-end encryption</p>
+                         </div>
+                         <button onClick={() => setIsStripeModalOpen(false)} className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-zinc-200 hover:bg-zinc-100 hover:ring-zinc-300 transition-all text-zinc-500">
+                            <IoCloseOutline className="text-xl" />
+                         </button>
+                      </div>
+                      
+                      <div className="p-8">
+                         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret, appearance: { theme: 'stripe' } }}>
+                            <StripePaymentForm 
+                               amount={grandTotal} 
+                               onCancel={() => setIsStripeModalOpen(false)} 
+                               onSuccess={() => {
+                                 setIsStripeModalOpen(false);
+                                 executeCheckout();
+                               }} 
+                            />
+                         </Elements>
+                      </div>
+                    </motion.div>
                  </div>
                )}
             </AnimatePresence>,

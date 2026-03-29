@@ -1,6 +1,8 @@
 ﻿# 🚀 LoopBazar
 
 ## 📌 Overview
+![alt text](image.png)
+
 LoopBazar is a full-stack, multi-vendor e-commerce platform built for modern marketplace operations. It supports three distinct roles (buyer, seller, admin), real-time communication, secure checkout flows, and AI-assisted decision-making.
 
 The platform combines a Next.js frontend with an Express + MongoDB backend, and introduces practical AI modules for:

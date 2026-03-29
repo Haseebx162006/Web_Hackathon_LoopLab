@@ -196,20 +196,85 @@ const ProductListingPage = () => {
       maxPrice: maxPriceInput.trim() || null,
     });
   };
+  const blobColors = ['#FF70A1', '#D4A5FF', '#FFB7CE', '#70D6FF', '#FFD670', '#A5FFD6'];
+  const getBlobColor = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return blobColors[Math.abs(hash) % blobColors.length];
+  };
 
   return (
     <BuyerPageShell>
-      <section className="relative space-y-6 pb-8">
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 select-none text-[18vw] font-black uppercase tracking-[-0.08em] text-black/[0.03]">
-          CATALOG
+      <section className="relative space-y-10 pb-16 pt-6 animate-fade-in-up">
+        <div className="glass relative overflow-hidden rounded-[2.5rem] p-7 md:p-14">
+          <div className="pointer-events-none absolute -left-20 -top-20 h-64 w-64 rounded-full bg-[#FFB7CE]/30 blur-[90px]" />
+          <div className="pointer-events-none absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-[#D4A5FF]/35 blur-[100px]" />
+
+          <div className="relative z-10 flex flex-col items-center justify-center space-y-8 text-center">
+            <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl">
+              <div className="group relative flex items-center transition-all">
+                <div className="absolute left-5 text-zinc-400 transition-colors group-focus-within:text-black">
+                  <IoSearchOutline className="text-xl" />
+                </div>
+                <input
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder="Search for items..."
+                  className="w-full rounded-2xl border-none bg-black/[0.03] py-4 pl-14 pr-32 text-sm font-semibold text-black placeholder:text-zinc-400 transition-all focus:bg-white focus:shadow-xl focus:outline-none focus:ring-0"
+                />
+                <button
+                  type="submit"
+                  className="absolute right-2 rounded-xl bg-black px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.15em] text-white transition-all hover:bg-zinc-800 active:scale-95"
+                >
+                  Search
+                </button>
+              </div>
+              
+              {searchInput.trim().length >= 2 && autocompleteResponse?.data?.products?.length ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-2xl border border-zinc-200 bg-white p-2 text-left shadow-xl">
+                  {autocompleteResponse.data.products.slice(0, 6).map((item) => (
+                    <button
+                      key={`${item.productName}-${item.category}`}
+                      type="button"
+                      onClick={() => {
+                        setSearchInput(item.productName);
+                        updateQuery({ search: item.productName, category: item.category || null });
+                      }}
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-zinc-100"
+                    >
+                      <span className="text-sm font-semibold text-zinc-700">{item.productName}</span>
+                      <span className="text-xs font-black uppercase tracking-[0.1em] text-zinc-400">{item.category || 'Product'}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </form>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white shadow-lg shadow-zinc-200">
+                <span className="h-1 w-1 rounded-full bg-white opacity-50" />
+                {totalProducts} products
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-xl border border-zinc-100 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-zinc-500 shadow-sm">
+                {activeFilterCount} active filters
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-xl border border-zinc-100 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-zinc-500 shadow-sm">
+                {category ? category : 'All categories'}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
-          <aside className="h-fit rounded-[2.2rem] border border-zinc-100 bg-white/85 p-5 shadow-[0_16px_35px_-24px_rgba(0,0,0,0.4)] xl:sticky xl:top-24">
-            <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-[0.34em] text-zinc-400">Filter Deck</p>
-              <h2 className="text-3xl font-black uppercase italic tracking-tight text-zinc-900">Tune Feed</h2>
-              <p className="text-sm font-semibold text-zinc-500">Refine by category, price range, and sorting.</p>
+          <aside className="glass h-fit rounded-[2rem] p-5 xl:sticky xl:top-28">
+            <div className="space-y-3">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Filter Deck</p>
+                <h2 className="text-3xl font-black uppercase tracking-tight text-zinc-900">Tune Feed</h2>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed text-zinc-500">Refine by category, price, and sorting.</p>
             </div>
 
             <div className="mt-5 space-y-3">
@@ -231,14 +296,14 @@ const ProductListingPage = () => {
                   onChange={(event) => setMinPriceInput(event.target.value)}
                   placeholder="Min"
                   inputMode="numeric"
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 outline-none"
+                  className="rounded-xl border border-zinc-100 bg-white/50 px-3 py-2.5 text-sm font-bold text-zinc-700 outline-none transition focus:border-black"
                 />
                 <input
                   value={maxPriceInput}
                   onChange={(event) => setMaxPriceInput(event.target.value)}
                   placeholder="Max"
                   inputMode="numeric"
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 outline-none"
+                  className="rounded-xl border border-zinc-100 bg-white/50 px-3 py-2.5 text-sm font-bold text-zinc-700 outline-none transition focus:border-black"
                 />
               </div>
 
@@ -258,7 +323,7 @@ const ProductListingPage = () => {
                     setMaxPriceInput('');
                     router.push('/products');
                   }}
-                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-black uppercase tracking-[0.18em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900"
+                  className="rounded-xl border border-transparent bg-zinc-100 px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900"
                 >
                   Reset
                 </button>
@@ -271,10 +336,10 @@ const ProductListingPage = () => {
                 <button
                   type="button"
                   onClick={() => updateQuery({ category: null })}
-                  className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
+                  className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
                     category === ''
-                      ? 'bg-black text-white'
-                      : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-900 hover:text-white'
+                      ? 'bg-black text-white shadow-lg shadow-black/20'
+                      : 'bg-zinc-100 text-zinc-500 hover:bg-black hover:text-white'
                   }`}
                 >
                   All
@@ -284,10 +349,10 @@ const ProductListingPage = () => {
                     key={categoryValue}
                     type="button"
                     onClick={() => updateQuery({ category: categoryValue })}
-                    className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] transition ${
+                    className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
                       category === categoryValue
-                        ? 'bg-black text-white'
-                        : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-900 hover:text-white'
+                        ? 'bg-black text-white shadow-lg shadow-black/20'
+                        : 'bg-zinc-100 text-zinc-500 hover:bg-black hover:text-white'
                     }`}
                   >
                     {categoryValue}
@@ -298,83 +363,6 @@ const ProductListingPage = () => {
           </aside>
 
           <div className="space-y-6">
-            <div className="relative overflow-hidden rounded-[2.4rem] border border-zinc-100 bg-white/90 p-5 shadow-[0_20px_45px_-30px_rgba(0,0,0,0.35)] md:p-7">
-              <div className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full bg-[#FFB7CE]/35 blur-[90px]" />
-              <div className="pointer-events-none absolute -bottom-20 -right-12 h-72 w-72 rounded-full bg-[#D4A5FF]/40 blur-[100px]" />
-
-              <div className="relative z-10 space-y-6">
-                <div className="space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-[0.34em] text-zinc-400">Marketplace Collection</p>
-                  <h1 className="text-4xl font-black uppercase italic tracking-[-0.03em] text-zinc-900 sm:text-6xl leading-[0.9]">
-                    Next Drop
-                    <br />
-                    <span className="bg-gradient-to-r from-[#FF70A1] via-[#D4A5FF] to-[#FF70A1] bg-clip-text text-transparent">
-                      Products
-                    </span>
-                  </h1>
-                </div>
-
-                <form onSubmit={handleSearchSubmit} className="relative w-full max-w-2xl">
-                  <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-3 py-2 shadow-sm">
-                    <IoSearchOutline className="text-lg text-zinc-400" />
-                    <input
-                      value={searchInput}
-                      onChange={(event) => setSearchInput(event.target.value)}
-                      placeholder="Search by product name or category"
-                      className="w-full border-0 bg-transparent text-sm font-medium text-zinc-700 outline-none placeholder:text-zinc-400"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-black px-3 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-white transition hover:bg-zinc-800"
-                    >
-                      Search
-                    </button>
-                  </div>
-
-                  {searchInput.trim().length >= 2 && autocompleteResponse?.data?.products?.length ? (
-                    <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl">
-                      {autocompleteResponse.data.products.slice(0, 6).map((item) => (
-                        <button
-                          key={`${item.productName}-${item.category}`}
-                          type="button"
-                          onClick={() => {
-                            setSearchInput(item.productName);
-                            updateQuery({ search: item.productName, category: item.category || null });
-                          }}
-                          className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-zinc-100"
-                        >
-                          <span className="text-sm font-semibold text-zinc-700">{item.productName}</span>
-                          <span className="text-xs font-black uppercase tracking-[0.1em] text-zinc-400">{item.category || 'Product'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </form>
-
-                <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-black px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white">
-                    {totalProducts} products
-                  </span>
-                  <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-600">
-                    {activeFilterCount} filters active
-                  </span>
-                  <span className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-600">
-                    {category ? `Category: ${category}` : 'All categories'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-100 bg-white/75 px-4 py-3">
-              <p className="text-xs font-semibold text-zinc-500">
-                Showing <span className="font-black text-zinc-800">{products.length}</span> of{' '}
-                <span className="font-black text-zinc-800">{totalProducts}</span> products
-              </p>
-              {isFetching && !isLoading ? (
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-zinc-500">Refreshing results...</p>
-              ) : null}
-            </div>
-
             {isLoading ? <BuyerLoader label="Loading products..." /> : null}
 
             {isError ? (
@@ -396,6 +384,7 @@ const ProductListingPage = () => {
                       onAddToCart={handleAddToCart}
                       onToggleWishlist={handleToggleWishlist}
                       wished={wishedIds.has(product._id)}
+                      blobColor={getBlobColor(product._id)}
                     />
                   ))}
                 </div>
@@ -407,33 +396,66 @@ const ProductListingPage = () => {
                 ) : null}
 
                 {pagination && pagination.pages > 1 ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => updateQuery({ page: Math.max(1, pagination.page - 1) })}
-                      disabled={pagination.page <= 1}
-                      className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black uppercase tracking-[0.15em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Prev
-                    </button>
-                    <span className="rounded-xl bg-zinc-100 px-3 py-2 text-xs font-black uppercase tracking-[0.15em] text-zinc-600">
-                      Page {pagination.page} of {pagination.pages}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => updateQuery({ page: Math.min(pagination.pages, pagination.page + 1) })}
-                      disabled={pagination.page >= pagination.pages}
-                      className="rounded-xl border border-zinc-200 px-3 py-2 text-xs font-black uppercase tracking-[0.15em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Next
-                    </button>
+                  <div className="flex flex-col items-center gap-6 pt-12">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => updateQuery({ page: Math.max(1, pagination.page - 1) })}
+                        disabled={pagination.page <= 1}
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-100 transition hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-zinc-900"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+
+                      <div className="flex items-center gap-1 rounded-[1.4rem] bg-white/50 p-1 backdrop-blur-sm ring-1 ring-zinc-100">
+                        {Array.from({ length: pagination.pages }, (_, i) => i + 1)
+                          .filter(p => {
+                            if (pagination.pages <= 5) return true;
+                            if (p === 1 || p === pagination.pages) return true;
+                            return Math.abs(p - pagination.page) <= 1;
+                          })
+                          .map((p, index, array) => (
+                            <React.Fragment key={p}>
+                              {index > 0 && array[index - 1] !== p - 1 ? (
+                                <span className="px-2 font-black text-zinc-300">...</span>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => updateQuery({ page: p })}
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl text-xs font-black transition-all ${
+                                  pagination.page === p
+                                    ? 'bg-black text-white shadow-lg'
+                                    : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            </React.Fragment>
+                          ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => updateQuery({ page: Math.min(pagination.pages, pagination.page + 1) })}
+                        disabled={pagination.page >= pagination.pages}
+                        className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-zinc-900 shadow-sm ring-1 ring-zinc-100 transition hover:bg-black hover:text-white disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-zinc-900"
+                      >
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
+                      Showing Page {pagination.page} of {pagination.pages}
+                    </p>
                   </div>
                 ) : null}
               </>
             ) : null}
           </div>
         </div>
-
       </section>
     </BuyerPageShell>
   );

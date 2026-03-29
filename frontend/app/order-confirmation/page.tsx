@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BuyerPageShell from '@/components/buyer/BuyerPageShell';
 
-const OrderConfirmationPage = () => {
+const OrderConfirmationContent = () => {
   const searchParams = useSearchParams();
 
   const orders = useMemo(() => {
@@ -73,5 +73,19 @@ const OrderConfirmationPage = () => {
     </BuyerPageShell>
   );
 };
+
+const OrderConfirmationFallback = () => (
+  <BuyerPageShell>
+    <section className="mx-auto max-w-3xl rounded-[2rem] border border-zinc-100 bg-white/85 p-8 text-center shadow-[0_14px_35px_-22px_rgba(0,0,0,0.25)]">
+      <p className="text-sm font-semibold text-zinc-500">Loading order details...</p>
+    </section>
+  </BuyerPageShell>
+);
+
+const OrderConfirmationPage = () => (
+  <Suspense fallback={<OrderConfirmationFallback />}>
+    <OrderConfirmationContent />
+  </Suspense>
+);
 
 export default OrderConfirmationPage;

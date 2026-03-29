@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ import BuyerAuthGate from '@/components/buyer/BuyerAuthGate';
 import BuyerPageShell from '@/components/buyer/BuyerPageShell';
 import { isBuyerAuthenticated, normalizeApiError } from '@/utils/buyerUtils';
 
-const PaymentPage = () => {
+const PaymentPageContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -165,5 +165,21 @@ const PaymentPage = () => {
     </BuyerPageShell>
   );
 };
+
+const PaymentPageFallback = () => (
+  <BuyerPageShell>
+    <section className="mx-auto max-w-3xl space-y-6">
+      <div className="rounded-[2rem] border border-zinc-100 bg-white/85 p-6 text-sm font-semibold text-zinc-500 shadow-[0_14px_35px_-22px_rgba(0,0,0,0.25)]">
+        Loading payment details...
+      </div>
+    </section>
+  </BuyerPageShell>
+);
+
+const PaymentPage = () => (
+  <Suspense fallback={<PaymentPageFallback />}>
+    <PaymentPageContent />
+  </Suspense>
+);
 
 export default PaymentPage;

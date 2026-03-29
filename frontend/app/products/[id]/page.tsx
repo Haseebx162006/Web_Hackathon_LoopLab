@@ -175,6 +175,11 @@ const ProductDetailPage = () => {
       return;
     }
 
+    if (!product) {
+      toast.error('Product details are not available yet.');
+      return;
+    }
+
     const sellerId =
       typeof product?.sellerId === 'object'
         ? (product.sellerId as { _id?: string })._id

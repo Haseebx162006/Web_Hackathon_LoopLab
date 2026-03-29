@@ -339,12 +339,12 @@ const ProductDetailPage = () => {
                     </h3>
                   </div>
                 </div>
-                <button
-                  type="button"
+                <Link
+                  href={`/stores/${typeof product.sellerId === 'object' ? (product.sellerId as any)._id : product.sellerId}`}
                   className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
                 >
                   Visit Store
-                </button>
+                </Link>
               </div>
             </div>
           </div>

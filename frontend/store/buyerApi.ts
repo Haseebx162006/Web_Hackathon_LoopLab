@@ -188,6 +188,7 @@ export interface BuyerSupportPayload {
 export interface BuyerProductsQuery {
   search?: string;
   category?: string;
+  sellerId?: string;
   minPrice?: number;
   maxPrice?: number;
   sort?: 'newest' | 'price_asc' | 'price_desc';
@@ -209,6 +210,9 @@ const toQueryParams = (query: BuyerProductsQuery) => {
   }
   if (query.category) {
     params.category = query.category;
+  }
+  if (query.sellerId) {
+    params.sellerId = query.sellerId;
   }
   if (typeof query.minPrice === 'number') {
     params.minPrice = String(query.minPrice);

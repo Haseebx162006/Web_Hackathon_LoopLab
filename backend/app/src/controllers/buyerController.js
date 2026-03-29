@@ -85,10 +85,8 @@ const getHomeData = async (req, res, next) => {
 
 const searchProducts = async (req, res, next) => {
   try {
-    const { search, category, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
-
+    const { search, category, sellerId, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
     const statuses = await getPublicStatuses();
-
     const query = { status: { $in: statuses } };
 
     if (search) {
@@ -96,6 +94,9 @@ const searchProducts = async (req, res, next) => {
     }
     if (category) {
       query.category = category;
+    }
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+      query.sellerId = sellerId;
     }
     if (minPrice || maxPrice) {
       query.price = {};
@@ -113,7 +114,8 @@ const searchProducts = async (req, res, next) => {
       .sort(sortQuery)
       .skip(skip)
       .limit(Number(limit))
-      .select('productName price discountPrice productImages category skuCode stockQuantity')
+      .populate('sellerId', 'storeName storeLogo')
+      .select('productName price discountPrice productImages category skuCode stockQuantity sellerId')
       .lean();
 
     const productsWithRatings = await attachRatings(products);

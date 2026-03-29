@@ -179,7 +179,7 @@ const SellerShell = ({ children }: SellerShellProps) => {
                 </h2>
               </div>
 
-              <div className="ml-auto flex items-center gap-4 rounded-2xl glass px-4 py-2 border-white/20">
+              <div className="ml-auto flex items-center gap-4 rounded-2xl glass bg-white/60 px-4 py-2 border-white/20">
                 <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-light uppercase tracking-[0.2em] text-zinc-400">Merchant Account</p>
                   <p className="text-xs font-light uppercase tracking-[0.12em] text-zinc-700">

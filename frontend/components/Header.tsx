@@ -91,7 +91,7 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex lg:items-center gap-10">
-          {["Home", "Products", "Events","Contact", "FAQ", "About"].map((item) => (
+          {["Home", "Products", "Stores", "Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}
               href={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}
@@ -204,7 +204,7 @@ const Header = () => {
       {/* Mobile Drawer */}
       {isMenuOpen && (
         <div className="glass mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up">
-          {["Home", "Products", "Events", "Contact", "FAQ", "About"].map((item) => (
+          {["Home", "Products", "Stores", "Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}
               href={`/${item.toLowerCase() === "home" ? "" : item.toLowerCase()}`}

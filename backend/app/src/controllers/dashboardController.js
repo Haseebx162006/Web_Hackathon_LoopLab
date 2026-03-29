@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
+const User = require('../models/User');
 
 const getBuyerOrders = async (req, res, next) => {
   try {
@@ -57,7 +58,79 @@ const requestOrderReturn = async (req, res, next) => {
   }
 };
 
+const getBuyerProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateBuyerProfile = async (req, res, next) => {
+  try {
+    const { name, phoneNumber } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { name, phoneNumber } },
+      { new: true, runValidators: true }
+    ).select('-password');
+    res.status(200).json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const addAddress = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const isFirst = (user.addresses || []).length === 0;
+    const newAddr = { ...req.body, isDefault: isFirst || req.body.isDefault };
+
+    if (newAddr.isDefault) {
+      user.addresses.forEach(a => { a.isDefault = false; });
+    }
+
+    user.addresses.push(newAddr);
+    await user.save();
+    res.status(201).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const removeAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(req.user._id);
+    user.addresses = user.addresses.filter(a => String(a._id) !== id);
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const setDefaultAddress = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(req.user._id);
+    user.addresses.forEach(a => {
+      a.isDefault = String(a._id) === id;
+    });
+    await user.save();
+    res.status(200).json({ success: true, data: user.addresses });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getBuyerOrders,
   requestOrderReturn,
+  getBuyerProfile,
+  updateBuyerProfile,
+  addAddress,
+  removeAddress,
+  setDefaultAddress,
 };

@@ -17,6 +17,15 @@ export interface BuyerSellerSummary {
   storeLogo?: string;
 }
 
+export interface BuyerStore {
+  _id: string;
+  storeName: string;
+  storeLogo?: string;
+  storeDescription?: string;
+  productCount: number;
+  createdAt: string;
+}
+
 export interface BuyerProduct {
   _id: string;
   productName: string;
@@ -260,6 +269,11 @@ export const buyerApi = apiSlice.injectEndpoints({
       providesTags: [{ type: 'BuyerProduct', id: 'HOME' }],
     }),
 
+    getPublicStores: builder.query<ApiResponse<BuyerStore[]>, void>({
+      query: () => '/public/stores',
+      providesTags: [{ type: 'BuyerSellerSummary', id: 'LIST' }],
+    }),
+
     getBuyerProducts: builder.query<ApiResponse<BuyerSearchData>, BuyerProductsQuery | void>({
       query: (query) => ({
         url: '/public/products',
@@ -471,4 +485,5 @@ export const {
   useAddBuyerAddressMutation,
   useRemoveBuyerAddressMutation,
   useSetBuyerDefaultAddressMutation,
+  useGetPublicStoresQuery,
 } = buyerApi;

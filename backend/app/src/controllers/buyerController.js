@@ -75,7 +75,7 @@ const getHomeData = async (req, res, next) => {
       data: {
         featuredProducts: featuredWithRatings,
         categories,
-        banners: [] // Placeholder for banners
+        banners: []
       }
     });
   } catch (err) {
@@ -156,7 +156,6 @@ const getProductDetails = async (req, res, next) => {
 
     const reviews = await Review.find({ product: id }).populate('buyerId', 'name').sort({ createdAt: -1 }).limit(10);
 
-    // Compute rating average
     let avgRating = 0;
     if (reviews.length > 0) {
       avgRating = reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length;
@@ -175,8 +174,42 @@ const getProductDetails = async (req, res, next) => {
   }
 };
 
+const getPublicStores = async (req, res, next) => {
+  try {
+    const User = mongoose.model('User');
+    const sellers = await User.find({
+      role: 'seller',
+      status: 'active',
+      profileCompleted: true,
+    })
+      .select('storeName storeLogo storeDescription createdAt')
+      .lean();
+
+    const storeIds = sellers.map(s => s._id);
+    const productCounts = await Product.aggregate([
+      { $match: { sellerId: { $in: storeIds }, status: 'approved' } },
+      { $group: { _id: '$sellerId', count: { $sum: 1 } } }
+    ]);
+
+    const countMap = new Map(productCounts.map(c => [String(c._id), c.count]));
+
+    const data = sellers.map(seller => ({
+      ...seller,
+      productCount: countMap.get(String(seller._id)) || 0
+    }));
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getHomeData,
   searchProducts,
   getProductDetails,
+  getPublicStores,
 };

@@ -1,8 +1,8 @@
-const Payment = require('../models/Payment');
 const Order = require('../models/Order');
-const User = require('../models/User');
 const { z } = require('zod');
 const { adminAnalyticsQuerySchema } = require('../utils/validators');
+
+const REVENUE_RECOGNIZED_STATUSES = ['processing', 'confirmed', 'packed', 'shipped', 'delivered'];
 
 const getPlatformAnalytics = async (req, res, next) => {
   try {
@@ -12,49 +12,50 @@ const getPlatformAnalytics = async (req, res, next) => {
     if (period === 'monthly') periodFormat = '%Y-%m';
     else if (period === 'weekly') periodFormat = '%Y-%U'; // week of year
 
-    // 1. Revenue Over Time (Using Payments: status='success')
-    const revenueChart = await Payment.aggregate([
-      { $match: { status: 'success' } },
-      {
-        $group: {
-          _id: { $dateToString: { format: periodFormat, date: '$createdAt' } },   
-          revenue: { $sum: '$amount' },
+    const [revenueChart, orderTrends, topCategories] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            status: { $in: REVENUE_RECOGNIZED_STATUSES },
+            refundStatus: { $ne: 'completed' },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // 2. Order Trends (Count orders over time)
-    const orderTrends = await Order.aggregate([
-      {
-        $group: {
-          _id: { $dateToString: { format: periodFormat, date: '$createdAt' } },   
-          orders: { $sum: 1 },
+        {
+          $group: {
+            _id: { $dateToString: { format: periodFormat, date: '$createdAt' } },
+            revenue: { $sum: '$totalAmount' },
+          },
         },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-
-    // 3. Top Categories
-    // Join Orders -> Products
-    const topCategories = await Order.aggregate([
-      { $unwind: '$items' },
-      {
-        $lookup: {
-          from: 'products',
-          localField: 'items.product',
-          foreignField: '_id',
-          as: 'productDetails',
+        { $sort: { _id: 1 } },
+      ]),
+      Order.aggregate([
+        {
+          $group: {
+            _id: { $dateToString: { format: periodFormat, date: '$createdAt' } },
+            orders: { $sum: 1 },
+          },
         },
-      },
-      { $unwind: '$productDetails' },
-      {
-        $group: {
-          _id: '$productDetails.category',
-          totalSales: { $sum: '$items.quantity' },
+        { $sort: { _id: 1 } },
+      ]),
+      Order.aggregate([
+        { $unwind: '$items' },
+        {
+          $lookup: {
+            from: 'products',
+            localField: 'items.product',
+            foreignField: '_id',
+            as: 'productDetails',
+          },
         },
-      },
-      { $sort: { totalSales: -1 } },
+        { $unwind: '$productDetails' },
+        {
+          $group: {
+            _id: '$productDetails.category',
+            totalSales: { $sum: '$items.quantity' },
+          },
+        },
+        { $sort: { totalSales: -1 } },
+      ]),
     ]);
 
     // 4. Active Users — using aggregation to count distinct users (efficient)

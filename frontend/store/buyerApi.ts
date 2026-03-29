@@ -189,7 +189,8 @@ export interface BuyerOrder {
 
 export interface BuyerCheckoutPayload {
   shippingAddress: BuyerShippingAddress;
-  paymentMethod: 'cod' | 'card' | 'wallet';
+  paymentMethod: 'cod' | 'card' | 'wallet' | 'boutique_account' | 'stripe';
+  paymentProof?: string | Record<string, string> | null;
 }
 
 export interface BuyerCheckoutResult {
@@ -465,6 +466,18 @@ export const buyerApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['BuyerProfile'],
     }),
+
+    uploadPaymentProof: builder.mutation<ApiResponse<string>, File>({
+      query: (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return {
+          url: '/checkout/upload-proof',
+          method: 'POST',
+          body: formData,
+        };
+      },
+    }),
   }),
   overrideExisting: true,
 });
@@ -493,5 +506,6 @@ export const {
   useAddBuyerAddressMutation,
   useRemoveBuyerAddressMutation,
   useSetBuyerDefaultAddressMutation,
+  useUploadPaymentProofMutation,
   useGetPublicStoresQuery,
 } = buyerApi;

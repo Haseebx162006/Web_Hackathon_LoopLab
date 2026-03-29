@@ -4,13 +4,14 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const logger = require('../utils/logger');
 const { checkoutSchema } = require('../utils/validators');
+const { uploadImage } = require('../utils/cloudinary');
 
 const checkoutCart = async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { shippingAddress, paymentMethod } = checkoutSchema.parse(req.body);
+    const { shippingAddress, paymentMethod, paymentProof } = checkoutSchema.parse(req.body);
 
     const cart = await Cart.findOne({ buyerId: req.user._id })
       .populate({
@@ -68,12 +69,28 @@ const checkoutCart = async (req, res, next) => {
 
     const createdOrders = [];
     for (const [sellerId, orderData] of Object.entries(ordersBySeller)) {
+      // Determine order status based on payment method
+      let status = 'pending';
+      let paymentStatus = 'unpaid';
+
+      if (paymentMethod === 'boutique_account') {
+        status = 'payment_pending';
+        paymentStatus = 'pending_verification';
+      } else if (paymentMethod === 'card' || paymentMethod === 'wallet') {
+        // These will be updated via webhook/wallet logic
+        status = 'payment_pending';
+        paymentStatus = 'unpaid';
+      }
+
       const newOrder = await Order.create([{
         buyerId: req.user._id,
         sellerId,
         items: orderData.items,
         totalAmount: orderData.totalAmount,
-        status: paymentMethod === 'cod' ? 'pending' : 'pending', // Will update via webhook for non-COD
+        status,
+        paymentMethod,
+        paymentStatus,
+        paymentProof: paymentMethod === 'boutique_account' ? (typeof paymentProof === 'object' && paymentProof !== null && !Array.isArray(paymentProof) ? paymentProof[sellerId] : paymentProof) : null,
         shippingAddress,
       }], { session });
 
@@ -99,6 +116,25 @@ const checkoutCart = async (req, res, next) => {
   } catch (err) {
     await session.abortTransaction();
     session.endSession();
+    next(err);
+  }
+};
+
+const uploadPaymentProof = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400);
+      return next(new Error('No image provided'));
+    }
+
+    const imageUrl = await uploadImage(req.file.buffer);
+
+    res.status(200).json({
+      success: true,
+      data: imageUrl,
+      message: 'Payment proof uploaded successfully',
+    });
+  } catch (err) {
     next(err);
   }
 };
@@ -139,7 +175,49 @@ const mockPaymentWebhook = async (req, res, next) => {
   }
 };
 
+const verifyPayment = async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const { action } = req.body; // 'approve' or 'reject'
+
+    if (!['approve', 'reject'].includes(action)) {
+      res.status(400);
+      return next(new Error('Invalid action. Use "approve" or "reject".'));
+    }
+
+    const order = await Order.findOne({ _id: orderId, sellerId: req.user._id });
+    if (!order) {
+      res.status(404);
+      return next(new Error('Order not found or not owned by you.'));
+    }
+
+    if (order.paymentStatus !== 'pending_verification') {
+      res.status(400);
+      return next(new Error(`Manual verification not applicable for current status: ${order.paymentStatus}`));
+    }
+
+    if (action === 'approve') {
+      order.paymentStatus = 'paid';
+      order.status = 'confirmed';
+    } else {
+      order.paymentStatus = 'failed';
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      data: order,
+      message: `Payment ${action === 'approve' ? 'approved' : 'rejected'} successfully`,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   checkoutCart,
   mockPaymentWebhook,
+  verifyPayment,
+  uploadPaymentProof,
 };

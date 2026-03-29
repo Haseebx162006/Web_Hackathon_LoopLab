@@ -49,6 +49,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: [
         'pending',
+        'payment_pending',
         'processing',
         'confirmed',
         'packed',
@@ -59,6 +60,22 @@ const orderSchema = new mongoose.Schema(
         'returned',
       ],
       default: 'pending',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['cod', 'card', 'wallet', 'boutique_account', 'stripe'],
+      required: true,
+      default: 'cod',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'pending_verification', 'paid', 'failed', 'refunded'],
+      default: 'unpaid',
+    },
+    paymentProof: {
+      type: String,
+      trim: true,
+      default: null,
     },
     trackingId: {
       type: String,

@@ -13,6 +13,8 @@ export type SellerOrderStatus =
 
 export type SellerStatusUpdate = 'confirmed' | 'packed' | 'shipped';
 
+export type SellerPaymentStatus = 'unpaid' | 'pending_verification' | 'paid' | 'failed' | 'refunded';
+
 export interface SellerVariant {
   key: string;
   value: string;
@@ -118,6 +120,9 @@ export interface SellerOrder {
   totalAmount: number;
   total: number;
   status: SellerOrderStatus;
+  paymentMethod: 'cod' | 'card' | 'wallet' | 'boutique_account' | 'stripe';
+  paymentStatus: SellerPaymentStatus;
+  paymentProof: string | null;
   trackingId: string | null;
   returnStatus?: 'none' | 'requested' | 'approved' | 'rejected';
   refundStatus?: 'none' | 'pending' | 'completed';
@@ -537,6 +542,18 @@ export const sellerApi = apiSlice.injectEndpoints({
         }),
       }
     ),
+
+    verifySellerPayment: builder.mutation<
+      ApiDataResponse<SellerOrder>,
+      { orderId: string; action: 'approve' | 'reject' }
+    >({
+      query: ({ orderId, action }) => ({
+        url: `/checkout/${orderId}/verify-payment`,
+        method: 'PATCH',
+        body: { action },
+      }),
+      invalidatesTags: ['SellerOrder', 'SellerDashboard'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -562,4 +579,5 @@ export const {
   useGetSellerProfileQuery,
   useUpdateSellerProfileMutation,
   useChangeSellerPasswordMutation,
+  useVerifySellerPaymentMutation,
 } = sellerApi;

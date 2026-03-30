@@ -9,6 +9,7 @@ import {
   type BuyerOrder,
   useGetBuyerOrdersQuery,
   useRequestBuyerOrderReturnMutation,
+  useConfirmBuyerOrderReceivedMutation,
 } from '@/store/buyerApi';
 import BuyerAuthGate from '@/components/buyer/BuyerAuthGate';
 import BuyerErrorState from '@/components/buyer/BuyerErrorState';
@@ -50,6 +51,7 @@ const BuyerDashboardPage = () => {
   });
 
   const [requestReturn, { isLoading: requestingReturn }] = useRequestBuyerOrderReturnMutation();
+  const [confirmReceived, { isLoading: confirmingReceived }] = useConfirmBuyerOrderReceivedMutation();
 
   const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse?.data]);
 
@@ -68,6 +70,15 @@ const BuyerDashboardPage = () => {
       toast.success('Return requested successfully.');
     } catch (mutationError) {
       toast.error(normalizeApiError(mutationError, 'Unable to request return.'));
+    }
+  };
+
+  const handleConfirmReceived = async (order: BuyerOrder) => {
+    try {
+      await confirmReceived(order._id).unwrap();
+      toast.success('Order marked as received! You can now leave a review.');
+    } catch (mutationError) {
+      toast.error(normalizeApiError(mutationError, 'Unable to confirm order.'));
     }
   };
 
@@ -199,17 +210,40 @@ const BuyerDashboardPage = () => {
                             {sellerChatId ? 'Message seller' : 'Open chats'}
                           </Link>
 
-                          {order.status === 'delivered' ? (
+                          {['processing', 'confirmed', 'packed', 'shipped'].includes(order.status) ? (
                             <button
                               type="button"
-                              onClick={() => {
-                                void handleReturnRequest(order);
-                              }}
-                              disabled={requestingReturn}
-                              className="rounded-xl border border-zinc-300 px-3 py-2 text-[10px] font-light uppercase tracking-[0.15em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() => { void handleConfirmReceived(order); }}
+                              disabled={confirmingReceived}
+                              className="rounded-xl bg-black px-3 py-2 text-[10px] font-light uppercase tracking-[0.15em] text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              Request return
+                              ✓ Mark as Received
                             </button>
+                          ) : null}
+
+                          {order.status === 'delivered' ? (
+                            <>
+                              <Link
+                                href={(() => {
+                                  const firstProduct = order.items.find(item => item.product && typeof item.product !== 'string');
+                                  if (firstProduct && typeof firstProduct.product === 'object') {
+                                    return `/products/${firstProduct.product._id}`;
+                                  }
+                                  return '/products';
+                                })()}
+                                className="rounded-xl border border-zinc-900 bg-white px-3 py-2 text-[10px] font-light uppercase tracking-[0.15em] text-zinc-900 transition hover:bg-zinc-100"
+                              >
+                                ★ Leave a Review
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => { void handleReturnRequest(order); }}
+                                disabled={requestingReturn}
+                                className="rounded-xl border border-zinc-300 px-3 py-2 text-[10px] font-light uppercase tracking-[0.15em] text-zinc-700 transition hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Request return
+                              </button>
+                            </>
                           ) : null}
 
                           {order.returnStatus && order.returnStatus !== 'none' ? (

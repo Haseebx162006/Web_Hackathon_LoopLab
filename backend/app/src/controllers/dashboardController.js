@@ -64,6 +64,37 @@ const requestOrderReturn = async (req, res, next) => {
   }
 };
 
+const confirmOrderReceived = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400);
+      return next(new Error('Invalid order id'));
+    }
+
+    const order = await Order.findOne({ _id: id, buyerId: req.user._id });
+    if (!order) {
+      res.status(404);
+      return next(new Error('Order not found'));
+    }
+
+    const allowedStatuses = ['shipped', 'confirmed', 'packed', 'processing'];
+    if (!allowedStatuses.includes(order.status)) {
+      res.status(400);
+      return next(new Error('This order cannot be marked as received at its current status'));
+    }
+
+    order.status = 'delivered';
+    await order.save();
+
+    res.status(200).json({ success: true, message: 'Order marked as received', data: order });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 const getBuyerProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id)
@@ -228,6 +259,7 @@ const setDefaultAddress = async (req, res, next) => {
 module.exports = {
   getBuyerOrders,
   requestOrderReturn,
+  confirmOrderReceived,
   getBuyerProfile,
   updateBuyerProfile,
   addAddress,

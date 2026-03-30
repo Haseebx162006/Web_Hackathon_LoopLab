@@ -2,6 +2,7 @@ const express = require('express');
 const {
   getBuyerOrders,
   requestOrderReturn,
+  confirmOrderReceived,
   getBuyerProfile,
   updateBuyerProfile,
   addAddress,
@@ -17,6 +18,7 @@ router.use(protect, isBuyer);
 
 router.get('/orders', getBuyerOrders);
 router.post('/orders/:id/return', requestOrderReturn);
+router.patch('/orders/:id/confirm-received', confirmOrderReceived);
 
 // Profile routes
 router.get('/profile', getBuyerProfile);

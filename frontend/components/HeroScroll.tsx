@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 const START_FRAME = 7;
 const END_FRAME = 192;
 const IMG_PREFIX = "ezgif-frame-";
-
+//heroscoll
 const HeroScroll = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

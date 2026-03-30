@@ -15,7 +15,7 @@ const Subscribe = () => {
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 1.2, ease: [0.23, 1, 0.32, 1] }}
-           className="relative bg-white/40 backdrop-blur-3xl rounded-[4rem] p-12 md:p-24 border border-white/60 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col md:flex-row items-center gap-16"
+           className="relative bg-gradient-to-r from-[#FFB7CE]/40 via-white/40 to-[#D4A5FF]/40 backdrop-blur-3xl rounded-[4rem] p-12 md:p-24 border border-white/60 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col md:flex-row items-center gap-16"
         >
           {/* Internal Glows */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-brand-pink/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -47,7 +47,7 @@ const Subscribe = () => {
              <div className="space-y-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.8em] text-brand-purple">Insider Access</span>
                 <h2 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter leading-[0.9] uppercase italic">
-                   Join The <br /> <span className="text-transparent bg-clip-text bg-linear-to-r from-brand-pink via-brand-purple to-brand-pink">Circle</span>
+                   Join The <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink via-brand-purple to-brand-pink">Circle</span>
                 </h2>
                 <p className="text-gray-500 font-bold text-sm uppercase tracking-widest leading-relaxed">
                    Subscribe for exclusive drops, <br />

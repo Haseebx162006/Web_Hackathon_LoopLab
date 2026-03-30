@@ -59,18 +59,7 @@ const Footer = () => {
                 </p>
             </div>
             
-            <div className="flex items-center gap-6 justify-center md:justify-start">
-                {['Instagram', 'Twitter', 'Pinterest'].map((social) => (
-                    <motion.a
-                        key={social}
-                        href="#"
-                        whileHover={{ y: -5, scale: 1.1 }}
-                        className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 hover:text-brand-purple transition-all"
-                    >
-                        {social}
-                    </motion.a>
-                ))}
-            </div>
+      
           </div>
 
           {/* Link Columns */}

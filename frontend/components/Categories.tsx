@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-
+// category
 interface Category {
   id: string;
   name: string;

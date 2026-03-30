@@ -226,7 +226,7 @@ const BuyerDashboardPage = () => {
                               <Link
                                 href={(() => {
                                   const firstProduct = order.items.find(item => item.product && typeof item.product !== 'string');
-                                  if (firstProduct && typeof firstProduct.product === 'object') {
+                                  if (firstProduct && firstProduct.product !== null && typeof firstProduct.product === 'object') {
                                     return `/products/${firstProduct.product._id}`;
                                   }
                                   return '/products';

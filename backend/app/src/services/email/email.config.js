@@ -3,7 +3,7 @@ const { google } = require('googleapis');
 const logger = require('../../utils/logger');
 
 const TOKEN_CACHE_TTL_MS = 55 * 60 * 1000;
-
+// EMAIL Service is not functional Now in production, so we can disable it without affecting user experience. We can re-enable it later when we have proper email templates and content ready.
 const env = {
   clientId: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,

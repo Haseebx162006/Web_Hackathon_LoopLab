@@ -7,7 +7,7 @@ interface AuthChoiceProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
+// Auth choice
 const AuthChoice = ({ isOpen, onClose }: AuthChoiceProps) => {
   // Lock body scroll when modal is open
   useEffect(() => {

@@ -5,7 +5,7 @@ interface ApiResponse<T> {
   data: T;
   message?: string;
 }
-
+// chat api types
 export interface ChatPagination {
   total: number;
   page: number;

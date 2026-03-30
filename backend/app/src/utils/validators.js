@@ -206,9 +206,9 @@ const checkoutSchema = z.object({
   shippingAddress: z.object({
     street: z.string().min(1),
     city: z.string().min(1),
-    state: z.string().min(1),
-    country: z.string().min(1),
-    zipCode: z.string().min(1),
+    state: z.string().max(120).optional(),
+    country: z.string().max(120).optional(),
+    zipCode: z.string().max(30).optional(),
   }),
   paymentMethod: z.enum(['cod', 'card', 'wallet', 'boutique_account', 'stripe']),
   // Zod v4 requires explicit key and value schemas for record.

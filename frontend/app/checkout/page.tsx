@@ -780,6 +780,14 @@ const CheckoutPage = () => {
                                       bankIBAN?: string;
                                     } | undefined;
                                     const storeLabel = sellerObj?.storeName || sellerObj?._id?.toString().slice(-6).toUpperCase() || 'HUB';
+
+                                    const sellerItems = cartItems.filter(item => resolveSellerIdFromProduct(item.product) === sellerId);
+                                    const sellerTotal = sellerItems.reduce((acc, item) => {
+                                      const p = resolveProductFromCartItem(item);
+                                      if (!p) return acc;
+                                      const price = p.discountPrice != null ? p.discountPrice : (p.price || 0);
+                                      return acc + (price * item.quantity);
+                                    }, 0);
                                     
                                     // Parse legacy vs new bank fields
                                     const hasNewFields = sellerObj?.bankName || sellerObj?.bankIBAN;
@@ -794,8 +802,13 @@ const CheckoutPage = () => {
                                        <div key={idx} className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:border-zinc-300 hover:shadow-md">
                                           <div className="absolute right-0 top-0 h-16 w-16 -translate-y-8 translate-x-8 rounded-full bg-zinc-50 transition-transform group-hover:scale-150"></div>
                                           <div className="relative">
-                                             <div className="mb-4 inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
-                                                <IoDiamondOutline /> {storeLabel}
+                                             <div className="mb-4 flex items-center justify-between">
+                                               <div className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                                                  <IoDiamondOutline /> {storeLabel}
+                                               </div>
+                                               <div className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                                                  Transfer: {formatCurrency(sellerTotal)}
+                                               </div>
                                              </div>
                                              <div className="space-y-3">
                                                 {!hasNewFields && legacyBankDetails ? (

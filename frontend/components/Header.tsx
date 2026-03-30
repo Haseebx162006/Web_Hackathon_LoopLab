@@ -17,6 +17,7 @@ const getProfileRoute = (role: "buyer" | "seller" | "admin" | null) => {
 };
 
 const Header = () => {
+  const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -30,6 +31,15 @@ const Header = () => {
     () => true,
     () => false,
   );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 996);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const { isAuthenticated, token, role } = useSelector((state: RootState) => state.auth);
   
@@ -79,7 +89,7 @@ const Header = () => {
   return (
     <header className="fixed top-6 left-0 right-0 z-50 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 transition-all duration-500">
       <nav 
-        className={`glass flex items-center justify-between rounded-full px-8 py-2.5 transition-all duration-500 ${
+        className={`${isMobile ? "bg-white border border-zinc-100" : "glass"} flex items-center justify-between rounded-full px-8 py-2.5 transition-all duration-500 ${
             isScrolled ? "shadow-lg ring-1 ring-black/5" : "shadow-brand"
         }`}
       >
@@ -210,7 +220,7 @@ const Header = () => {
 
       {/* Mobile Drawer */}
       {isMenuOpen && (
-        <div className="glass mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up">
+        <div className={`${isMobile ? "bg-white border border-zinc-100" : "glass"} mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up`}>
           {["Home", "Products", "Stores", "Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}

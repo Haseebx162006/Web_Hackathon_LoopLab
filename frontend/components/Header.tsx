@@ -17,6 +17,7 @@ const getProfileRoute = (role: "buyer" | "seller" | "admin" | null) => {
 };
 
 const Header = () => {
+  const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -30,6 +31,15 @@ const Header = () => {
     () => true,
     () => false,
   );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 996);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const { isAuthenticated, token, role } = useSelector((state: RootState) => state.auth);
   
@@ -77,16 +87,16 @@ const Header = () => {
   }, []);
 
   return (
-    <header className="fixed top-6 left-0 right-0 z-50 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 transition-all duration-500">
+    <header className="fixed top-6 left-0 right-0 z-50 mx-auto max-w-5xl px-2 sm:px-6 lg:px-8 transition-all duration-500">
       <nav 
-        className={`glass flex items-center justify-between rounded-full px-8 py-2.5 transition-all duration-500 ${
+        className={`${isMobile ? "bg-white border border-zinc-100" : "glass"} flex items-center justify-between rounded-full px-4 sm:px-8 py-2.5 transition-all duration-500 ${
             isScrolled ? "shadow-lg ring-1 ring-black/5" : "shadow-brand"
         }`}
       >
         {/* Logo */}
         <div className="flex items-center">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="relative h-8 w-28 transition-transform duration-500 group-hover:scale-105">
+            <div className="relative h-8 w-20 sm:w-28 transition-transform duration-500 group-hover:scale-105">
               <img 
                 src="/assets/logo/logo.png" 
                 alt="LoopBazar" 
@@ -110,7 +120,7 @@ const Header = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {!isLoggedIn && (
             <>
               <button
@@ -129,7 +139,7 @@ const Header = () => {
           )}
 
           {isLoggedIn && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {isBuyer ? (
                 <>
                   <button
@@ -210,7 +220,7 @@ const Header = () => {
 
       {/* Mobile Drawer */}
       {isMenuOpen && (
-        <div className="glass mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up">
+        <div className={`${isMobile ? "bg-white border border-zinc-100" : "glass"} mt-4 flex flex-col items-center gap-6 rounded-3xl py-10 shadow-xl lg:hidden animate-fade-in-up`}>
           {["Home", "Products", "Stores", "Contact", "FAQ", "About"].map((item) => (
             <Link
               key={item}

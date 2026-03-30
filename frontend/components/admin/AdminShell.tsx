@@ -33,7 +33,6 @@ const NAV_ITEMS = [
   { href: '/admin-dashboard/users', label: 'Users', icon: IoPeopleOutline },
   { href: '/admin-dashboard/products', label: 'Products', icon: IoStorefrontOutline },
   { href: '/admin-dashboard/orders', label: 'Orders', icon: IoBagHandleOutline },
-  { href: '/admin-dashboard/payments', label: 'Payments', icon: IoCardOutline },
   { href: '/admin-dashboard/analytics', label: 'Analytics', icon: IoStatsChartOutline },
 ] as const;
 

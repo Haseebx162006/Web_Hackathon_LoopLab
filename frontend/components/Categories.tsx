@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-// category
+// category of auth choice
 interface Category {
   id: string;
   name: string;

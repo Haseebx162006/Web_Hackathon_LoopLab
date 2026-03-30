@@ -108,10 +108,87 @@ const flagProduct = async (req, res, next) => {
   }
 };
 
+const getTopProductsByOrders = async (req, res, next) => {
+  try {
+    const Order = require('../models/Order');
+
+    const topProducts = await Order.aggregate([
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.product',
+          orderCount: { $sum: '$items.quantity' },
+        },
+      },
+      { $sort: { orderCount: -1 } },
+      { $limit: 8 },
+      {
+        $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'product',
+        },
+      },
+      { $unwind: '$product' },
+      {
+        $project: {
+          _id: '$product._id',
+          productName: '$product.productName',
+          productImages: '$product.productImages',
+          price: '$product.price',
+          discountPrice: '$product.discountPrice',
+          category: '$product.category',
+          isFeatured: '$product.isFeatured',
+          orderCount: 1,
+        },
+      },
+    ]);
+
+    res.status(200).json({ success: true, data: topProducts });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const toggleFeaturedProduct = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isFeatured } = req.body;
+
+    if (isFeatured === true) {
+      const currentFeaturedCount = await Product.countDocuments({ isFeatured: true });
+      if (currentFeaturedCount >= 8) {
+        return res.status(400).json({
+          success: false,
+          message: 'Maximum of 8 featured products allowed. Remove one before featuring another.',
+        });
+      }
+    }
+
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { isFeatured: Boolean(isFeatured) },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    logger.info(`[AUDIT] Admin ${req.user.email} ${isFeatured ? 'featured' : 'unfeatured'} product ${product._id}`);
+    res.status(200).json({ success: true, data: { id: product._id, isFeatured: product.isFeatured } });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   approveProduct,
   rejectProduct,
   flagProduct,
-};
+  getTopProductsByOrders,
+  toggleFeaturedProduct,
+};

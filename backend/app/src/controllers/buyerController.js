@@ -61,16 +61,23 @@ const getHomeData = async (req, res, next) => {
   try {
     const statuses = getPublicStatuses();
 
-    const [featuredProducts, categories] = await Promise.all([
-      Product.find({ status: { $in: statuses } })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .select('productName price discountPrice productImages category skuCode stockQuantity')
-        .lean(),
-      Product.distinct('category', { status: { $in: statuses } }),
-    ]);
+    const featuredOnly = await Product.find({ status: { $in: statuses }, isFeatured: true })
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .select('productName price discountPrice productImages category skuCode stockQuantity isFeatured')
+      .lean();
 
-    const featuredWithRatings = await attachRatings(featuredProducts);
+    const productsToShow = featuredOnly.length > 0
+      ? featuredOnly
+      : await Product.find({ status: { $in: statuses } })
+          .sort({ createdAt: -1 })
+          .limit(8)
+          .select('productName price discountPrice productImages category skuCode stockQuantity isFeatured')
+          .lean();
+
+    const categories = await Product.distinct('category', { status: { $in: statuses } });
+
+    const featuredWithRatings = await attachRatings(productsToShow);
 
     res.status(200).json({
       success: true,

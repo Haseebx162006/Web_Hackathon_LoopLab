@@ -37,8 +37,20 @@ export interface AdminProductSummary {
   productImages?: string[];
   status: 'pending' | 'approved' | 'rejected';
   isFlagged: boolean;
+  isFeatured: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface TopProductByOrders {
+  _id: string;
+  productName: string;
+  productImages?: string[];
+  price: number;
+  discountPrice?: number | null;
+  category: string;
+  isFeatured: boolean;
+  orderCount: number;
 }
 
 export interface AdminOrderItem {
@@ -386,6 +398,26 @@ export const adminApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['AdminAnalytics'],
     }),
+
+    getAdminTopProducts: builder.query<ApiResponse<TopProductByOrders[]>, void>({
+      query: () => '/admin/products/top-by-orders',
+      providesTags: ['AdminProduct'],
+    }),
+
+    toggleAdminFeaturedProduct: builder.mutation<
+      ApiResponse<{ id: string; isFeatured: boolean }>,
+      { id: string; isFeatured: boolean }
+    >({
+      query: ({ id, isFeatured }) => ({
+        url: `/admin/products/${id}/featured`,
+        method: 'PATCH',
+        body: { isFeatured },
+      }),
+      invalidatesTags: (_result, _error, arg) => [
+        { type: 'AdminProduct', id: arg.id },
+        { type: 'AdminProduct', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -406,4 +438,6 @@ export const {
   useGetAdminPaymentByIdQuery,
   useGetAdminRefundLogsQuery,
   useGetAdminAnalyticsQuery,
+  useGetAdminTopProductsQuery,
+  useToggleAdminFeaturedProductMutation,
 } = adminApi;

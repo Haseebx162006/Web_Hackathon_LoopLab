@@ -6,11 +6,14 @@ import toast from 'react-hot-toast';
 import type { RootState } from '@/store/store';
 import {
   type AdminProductSummary,
+  type TopProductByOrders,
   useApproveAdminProductMutation,
   useFlagAdminProductMutation,
   useGetAdminProductByIdQuery,
   useGetAdminProductsQuery,
+  useGetAdminTopProductsQuery,
   useRejectAdminProductMutation,
+  useToggleAdminFeaturedProductMutation,
 } from '@/store/adminApi';
 import AdminCard from '@/components/admin/AdminCard';
 import AdminErrorState from '@/components/admin/AdminErrorState';
@@ -18,14 +21,9 @@ import AdminLoader from '@/components/admin/AdminLoader';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminStatusBadge from '@/components/admin/AdminStatusBadge';
 import AdminTable from '@/components/admin/AdminTable';
-import {
-  formatCurrency,
-  formatDateTime,
-  isAdminAuthenticated,
-  normalizeApiError,
-  toSentenceCase,
-} from '@/utils/adminUtils';
-import { FileDown, FileSpreadsheet } from 'lucide-react';
+import Link from 'next/link';
+import { formatCurrency, formatDateTime, isAdminAuthenticated, normalizeApiError, toSentenceCase } from '@/utils/adminUtils';
+import { FileDown, FileSpreadsheet, StarIcon } from 'lucide-react';
 
 const PAGE_SIZE = 12;
 
@@ -72,10 +70,18 @@ const ProductModerationPage = () => {
   const [approveProduct, { isLoading: approving }] = useApproveAdminProductMutation();
   const [rejectProduct, { isLoading: rejecting }] = useRejectAdminProductMutation();
   const [flagProduct, { isLoading: flagging }] = useFlagAdminProductMutation();
+  const [toggleFeatured, { isLoading: togglingFeatured }] = useToggleAdminFeaturedProductMutation();
+
+  const {
+    data: topProductsResponse,
+    isLoading: topProductsLoading,
+    refetch: refetchTopProducts,
+  } = useGetAdminTopProductsQuery(undefined, { skip: !isAdmin });
 
   const products = useMemo(() => productsResponse?.data?.products ?? [], [productsResponse?.data?.products]);
   const pagination = productsResponse?.data?.pagination;
   const selectedProduct = selectedProductResponse?.data;
+  const topProducts = useMemo(() => topProductsResponse?.data ?? [], [topProductsResponse?.data]);
 
   const summary = useMemo(() => {
     return products.reduce(
@@ -205,6 +211,16 @@ const ProductModerationPage = () => {
     }
   };
 
+  const handleToggleFeatured = async (product: TopProductByOrders) => {
+    try {
+      await toggleFeatured({ id: product._id, isFeatured: !product.isFeatured }).unwrap();
+      toast.success(product.isFeatured ? 'Removed from Featured' : 'Added to Featured Products!');
+      void refetchTopProducts();
+    } catch (mutationError) {
+      toast.error(normalizeApiError(mutationError, 'Unable to update featured status'));
+    }
+  };
+
   const handleViewProduct = (productId: string) => {
     if (selectedProductId === productId) {
       void refetchSelectedProduct();
@@ -221,6 +237,89 @@ const ProductModerationPage = () => {
 
   return (
     <div className="space-y-8">
+      {/* Featured Products Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight text-zinc-900">Featured Products</h2>
+            <p className="mt-1 text-sm font-semibold text-zinc-500">
+              Top 8 products by order volume. Toggle star to feature them on the homepage.
+              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700">
+                {topProducts.filter(p => p.isFeatured).length}/8 featured
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {topProductsLoading ? (
+          <AdminLoader label="Loading top products..." />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {topProducts.length === 0 ? (
+              <div className="col-span-full rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50 p-8 text-center">
+                <p className="text-sm font-semibold text-zinc-500">No orders found yet. Products will appear here once orders are placed.</p>
+              </div>
+            ) : (
+              topProducts.map((product) => (
+                <div
+                  key={product._id}
+                  className={`relative overflow-hidden rounded-2xl border-2 p-4 shadow-sm transition hover:shadow-md ${
+                    product.isFeatured
+                      ? 'border-amber-400 bg-gradient-to-br from-amber-50 to-white'
+                      : 'border-zinc-200 bg-white'
+                  }`}
+                >
+                  {product.isFeatured && (
+                    <div className="absolute right-2 top-2 rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-white shadow">
+                      Featured
+                    </div>
+                  )}
+
+                  <Link href={`/products/${product._id}`} target="_blank" className="block group">
+                    <div className="mb-3 aspect-square w-full overflow-hidden rounded-xl bg-zinc-100">
+                      {product.productImages?.[0] ? (
+                        <img
+                          src={product.productImages[0]}
+                          alt={product.productName}
+                          className="h-full w-full object-cover transition group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-zinc-400 text-xs font-semibold">No Image</div>
+                      )}
+                    </div>
+                    <p className="text-sm font-black leading-snug text-zinc-900 group-hover:text-amber-600 transition line-clamp-2">
+                      {product.productName}
+                    </p>
+                  </Link>
+
+                  <p className="mt-1 text-xs font-semibold text-zinc-500">{product.category}</p>
+                  <p className="mt-1 text-sm font-black text-zinc-900">{formatCurrency(product.price)}</p>
+                  <div className="mt-1 flex items-center gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Orders:</span>
+                    <span className="text-[10px] font-black text-zinc-700">{product.orderCount}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { void handleToggleFeatured(product); }}
+                    disabled={togglingFeatured}
+                    className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-[10px] font-black uppercase tracking-widest transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      product.isFeatured
+                        ? 'bg-amber-400 text-white hover:bg-amber-500'
+                        : 'border-2 border-zinc-200 bg-white text-zinc-700 hover:border-amber-400 hover:text-amber-600'
+                    }`}
+                  >
+                    <StarIcon className={`h-3.5 w-3.5 ${product.isFeatured ? 'fill-white' : ''}`} />
+                    {product.isFeatured ? 'Remove Featured' : 'Add to Featured'}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <hr className="border-zinc-200" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <AdminPageHeader
           title="Product Moderation"

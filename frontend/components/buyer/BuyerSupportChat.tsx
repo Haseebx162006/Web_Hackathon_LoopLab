@@ -91,7 +91,7 @@ const BuyerSupportChat = () => {
   return (
     <>
       {isOpen ? (
-        <section className="fixed bottom-24 right-4 z-[70] w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-[1.6rem] border border-zinc-100 bg-white/95 shadow-[0_24px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+        <section className="fixed bottom-20 right-4 left-4 sm:left-auto sm:bottom-24 sm:right-8 z-[70] w-auto sm:w-[calc(100vw-2rem)] sm:max-w-sm overflow-hidden rounded-[1.6rem] border border-zinc-100 bg-white/95 shadow-[0_24px_48px_-28px_rgba(0,0,0,0.45)] backdrop-blur-xl transition-all animate-fade-in-up">
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-zinc-400">Buyer Support</p>
@@ -121,7 +121,7 @@ const BuyerSupportChat = () => {
               </div>
             ) : (
               <>
-                <div className="max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-zinc-50 p-3">
+                <div className="max-h-60 sm:max-h-72 space-y-3 overflow-y-auto rounded-2xl bg-zinc-50 p-3">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -138,7 +138,7 @@ const BuyerSupportChat = () => {
                 </div>
 
                 {!hasConversation ? (
-                  <p className="mt-3 text-xs font-semibold text-zinc-400">
+                  <p className="mt-3 text-[10px] sm:text-xs font-semibold text-zinc-400">
                     Ask about delivery ETA, return windows, refund status, or order help.
                   </p>
                 ) : null}
@@ -173,10 +173,10 @@ const BuyerSupportChat = () => {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="fixed bottom-6 right-6 z-[70] inline-flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-[0_20px_34px_-20px_rgba(0,0,0,0.8)] transition hover:scale-105 hover:bg-zinc-800"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[70] inline-flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-black text-white shadow-[0_20px_34px_-20px_rgba(0,0,0,0.8)] transition hover:scale-105 hover:bg-zinc-800"
         aria-label={isOpen ? 'Close support chat' : 'Open support chat'}
       >
-        {isOpen ? <IoCloseOutline className="text-2xl" /> : <IoChatbubbleEllipsesOutline className="text-2xl" />}
+        {isOpen ? <IoCloseOutline className="text-xl sm:text-2xl" /> : <IoChatbubbleEllipsesOutline className="text-xl sm:text-2xl" />}
       </button>
     </>
   );

@@ -387,7 +387,7 @@ const ProductDetailPage = () => {
           <div className="space-y-10 py-6 lg:py-0">
             <div className="space-y-4">
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-600">Verified Product</p>
-              <h1 className="text-4xl font-black uppercase leading-[0.95] tracking-tighter text-zinc-900 sm:text-6xl lg:text-7xl">
+              <h1 className="text-3xl font-black uppercase leading-[0.95] tracking-tighter text-zinc-900 xs:text-4xl sm:text-6xl lg:text-7xl">
                 {product.productName}
               </h1>
               <div className="flex items-center gap-6 pt-2">
@@ -422,47 +422,63 @@ const ProductDetailPage = () => {
               </p>
             </div>
 
-            <div className="space-y-6">
-              <p className="max-w-md text-sm font-semibold leading-relaxed text-zinc-500">
+            <div className="space-y-8">
+              <p className="max-w-full sm:max-w-md text-sm font-semibold leading-relaxed text-zinc-500">
                 {product.description || 'This premium artifact awaits its new owner. Experience the pinnacle of design and craftsmanship.'}
               </p>
               
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <BuyerQuantityControl 
-                    value={quantity} 
-                    onChange={setQuantity} 
-                    max={stock > 0 ? stock : 1} 
-                    disabled={stock <= 0} 
-                  />
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 sm:w-32">
+                    <BuyerQuantityControl 
+                      value={quantity} 
+                      onChange={setQuantity} 
+                      max={stock > 0 ? stock : 1} 
+                      disabled={stock <= 0} 
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleWishlist(product)}
+                    className={`group flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300 sm:hidden ${
+                      isWished
+                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
+                        : 'bg-white border border-zinc-100 text-zinc-400 hover:border-zinc-900 hover:text-zinc-900'
+                    }`}
+                  >
+                    <IoHeartOutline className={`text-2xl transition-transform group-hover:scale-125 ${isWished ? 'fill-current' : ''}`} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleAddToCart(product, quantity)}
-                  disabled={stock <= 0 || addingToCart}
-                  className="flex-[2] rounded-2xl bg-black py-5 text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-2xl transition hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                >
-                  {addingToCart ? 'Syncing...' : 'Add to Bag'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleWishlist(product)}
-                  className={`group flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300 ${
-                    isWished
-                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
-                      : 'bg-white border border-zinc-100 text-zinc-400 hover:border-zinc-900 hover:text-zinc-900'
-                  }`}
-                >
-                  <IoHeartOutline className={`text-2xl transition-transform group-hover:scale-125 ${isWished ? 'fill-current' : ''}`} />
-                </button>
+                
+                <div className="flex items-center gap-4 sm:flex-1">
+                  <button
+                    type="button"
+                    onClick={() => handleAddToCart(product, quantity)}
+                    disabled={stock <= 0 || addingToCart}
+                    className="flex-1 rounded-2xl bg-black py-5 text-[11px] font-black uppercase tracking-[0.25em] text-white shadow-2xl transition hover:bg-zinc-800 active:scale-95 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                  >
+                    {addingToCart ? 'Syncing...' : 'Add to Bag'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleWishlist(product)}
+                    className={`hidden sm:flex group h-16 w-16 items-center justify-center rounded-2xl transition-all duration-300 ${
+                      isWished
+                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-200'
+                        : 'bg-white border border-zinc-100 text-zinc-400 hover:border-zinc-900 hover:text-zinc-900'
+                    }`}
+                  >
+                    <IoHeartOutline className={`text-2xl transition-transform group-hover:scale-125 ${isWished ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Boutique Information */}
             <div className="glass group/store rounded-[2.5rem] p-6 transition-all border border-zinc-100 bg-white/50">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 border border-zinc-100">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-zinc-50 border border-zinc-100">
                     {storeInfo?.storeLogo ? (
                       <img
                         src={storeInfo.storeLogo}
@@ -475,24 +491,24 @@ const ProductDetailPage = () => {
                       </span>
                     )}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Brand Boutique</p>
-                    <h3 className="text-xl font-black uppercase tracking-tight text-zinc-900">
+                    <h3 className="text-xl font-black uppercase tracking-tight text-zinc-900 truncate">
                       {storeInfo?.storeName || 'Verified Store'}
                     </h3>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:mt-0">
                   <Link
                     href={storeHref}
-                    className="rounded-xl border border-zinc-200 bg-white px-5 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
+                    className="flex-1 sm:flex-none text-center rounded-xl border border-zinc-200 bg-white px-5 py-3 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-black hover:text-white"
                   >
                     Visit Store
                   </Link>
                   <button
                     type="button"
                     onClick={handleChat}
-                    className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-zinc-900 hover:text-white"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-[9px] font-black uppercase tracking-widest text-zinc-900 transition hover:bg-zinc-900 hover:text-white"
                   >
                     <IoChatbubbleEllipsesOutline className="text-lg" />
                     Chat

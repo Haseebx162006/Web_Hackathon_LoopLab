@@ -411,6 +411,17 @@ export const buyerApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    confirmBuyerOrderReceived: builder.mutation<ApiResponse<BuyerOrder>, string>({
+      query: (orderId) => ({
+        url: `/buyer/orders/${orderId}/confirm-received`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (_result, _error, orderId) => [
+        { type: 'BuyerOrder', id: orderId },
+        { type: 'BuyerOrder', id: 'LIST' },
+      ],
+    }),
+
     addBuyerReview: builder.mutation<ApiResponse<BuyerReview>, BuyerReviewPayload>({
       query: ({ productId, rating, comment }) => ({
         url: `/reviews/${productId}`,
@@ -506,6 +517,7 @@ export const {
   useProcessBuyerPaymentWebhookMutation,
   useGetBuyerOrdersQuery,
   useRequestBuyerOrderReturnMutation,
+  useConfirmBuyerOrderReceivedMutation,
   useAddBuyerReviewMutation,
   useSendBuyerSupportMessageMutation,
   useGetBuyerProfileQuery,

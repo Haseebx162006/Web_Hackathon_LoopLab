@@ -39,6 +39,19 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const otpPurposeSchema = z.enum(['signup', 'login', 'password_reset']);
+
+const otpSendSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  purpose: otpPurposeSchema.default('signup'),
+});
+
+const otpVerifySchema = z.object({
+  email: z.string().email('Invalid email address'),
+  otp: z.string().regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
+  purpose: otpPurposeSchema.default('signup'),
+});
+
 const sellerLoginSchema = z.object({
   emailOrPhone: z.string().min(1, 'Email or Phone is required'),
   password: z.string().min(1, 'Password is required'),
@@ -89,7 +102,7 @@ const bulkInventoryBodySchema = z.object({
 });
 
 const sellerOrderStatusSchema = z.object({
-  status: z.enum(['confirmed', 'packed', 'shipped']),
+  status: z.enum(['confirmed', 'packed', 'shipped', 'delivered', 'cancelled']),
   trackingId: z.string().trim().max(200).optional().nullable(),
 });
 
@@ -359,6 +372,8 @@ module.exports = {
   baseSignupSchema,
   signupSchema,
   loginSchema,
+  otpSendSchema,
+  otpVerifySchema,
   sellerLoginSchema,
   productCreateSchema,
   productUpdateSchema,

@@ -6,6 +6,76 @@ const logger = require('../utils/logger');
 const { checkoutSchema } = require('../utils/validators');
 const { uploadImage } = require('../utils/cloudinary');
 const stripe = require('../utils/stripe');
+const {
+  sendOrderPlacedEmail,
+  sendOrderStatusEmail,
+} = require('../services/email/email.service');
+
+const ORDER_NOTIFICATION_POPULATE = [
+  { path: 'buyerId', select: 'name email' },
+  { path: 'sellerId', select: 'storeName email' },
+  { path: 'items.product', select: 'productName' },
+];
+
+const queueOrderPlacedNotifications = (orderIds) => {
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return;
+  }
+
+  setImmediate(async () => {
+    try {
+      const orders = await Order.find({ _id: { $in: orderIds } })
+        .populate(ORDER_NOTIFICATION_POPULATE)
+        .lean();
+
+      await Promise.allSettled(
+        orders.map((order) =>
+          sendOrderPlacedEmail({
+            ...order,
+            orderId: order._id,
+            buyer: order.buyerId,
+            seller: order.sellerId,
+          })
+        )
+      );
+    } catch (error) {
+      logger.error('Failed to queue seller order placed emails', {
+        orderIds: orderIds.map((id) => String(id)),
+        error: error.message,
+      });
+    }
+  });
+};
+
+const queueOrderStatusNotifications = (orderIds) => {
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return;
+  }
+
+  setImmediate(async () => {
+    try {
+      const orders = await Order.find({ _id: { $in: orderIds } })
+        .populate(ORDER_NOTIFICATION_POPULATE)
+        .lean();
+
+      await Promise.allSettled(
+        orders.map((order) =>
+          sendOrderStatusEmail({
+            ...order,
+            orderId: order._id,
+            buyer: order.buyerId,
+            seller: order.sellerId,
+          })
+        )
+      );
+    } catch (error) {
+      logger.error('Failed to queue buyer order status emails', {
+        orderIds: orderIds.map((id) => String(id)),
+        error: error.message,
+      });
+    }
+  });
+};
 
 const createPaymentIntent = async (req, res, next) => {
   try {
@@ -157,6 +227,10 @@ const checkoutCart = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
+    const createdOrderIds = createdOrders.map((order) => order._id);
+    queueOrderPlacedNotifications(createdOrderIds);
+    queueOrderStatusNotifications(createdOrderIds);
+
     logger.info(`User ${req.user._id} checked out ${createdOrders.length} orders`);
 
     res.status(201).json({
@@ -220,6 +294,8 @@ const mockPaymentWebhook = async (req, res, next) => {
         { _id: { $in: orderIds } },
         { status: 'confirmed' }
       );
+
+      queueOrderStatusNotifications(orderIds);
     }
     
     res.status(200).json({ success: true, message: 'Webhook processed' });
@@ -257,6 +333,10 @@ const verifyPayment = async (req, res, next) => {
     }
 
     await order.save();
+
+    if (action === 'approve') {
+      queueOrderStatusNotifications([order._id]);
+    }
 
     res.status(200).json({
       success: true,

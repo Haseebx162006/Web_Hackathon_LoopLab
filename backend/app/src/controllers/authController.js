@@ -2,7 +2,14 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { z } = require('zod');
 const User = require('../models/User');
-const { signupSchema, loginSchema, sellerLoginSchema } = require('../utils/validators');
+const {
+  signupSchema,
+  loginSchema,
+  sellerLoginSchema,
+  otpSendSchema,
+  otpVerifySchema,
+} = require('../utils/validators');
+const { sendOTP, resendOTP, verifyOTP } = require('../services/email/email.service');
 
 const generateToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -168,6 +175,98 @@ const sellerLogin = async (req, res, next) => {
   }
 };
 
+const sendOtpCode = async (req, res, next) => {
+  try {
+    const { email, purpose } = otpSendSchema.parse(req.body);
+    const result = await sendOTP(email, purpose);
+
+    res.status(202).json({
+      success: true,
+      message: 'OTP queued for delivery',
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.issues[0]?.message || 'Validation failed',
+      });
+    }
+
+    if (error.code === 'OTP_RATE_LIMIT') {
+      return res.status(error.statusCode || 429).json({
+        success: false,
+        message: error.message,
+        retryAfterSeconds: error.retryAfterSeconds,
+      });
+    }
+
+    next(error);
+  }
+};
+
+const resendOtpCode = async (req, res, next) => {
+  try {
+    const { email, purpose } = otpSendSchema.parse(req.body);
+    const result = await resendOTP(email, purpose);
+
+    res.status(202).json({
+      success: true,
+      message: 'OTP resend request queued',
+      data: result,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.issues[0]?.message || 'Validation failed',
+      });
+    }
+
+    if (error.code === 'OTP_RATE_LIMIT') {
+      return res.status(error.statusCode || 429).json({
+        success: false,
+        message: error.message,
+        retryAfterSeconds: error.retryAfterSeconds,
+      });
+    }
+
+    next(error);
+  }
+};
+
+const verifyOtpCode = async (req, res, next) => {
+  try {
+    const { email, otp, purpose } = otpVerifySchema.parse(req.body);
+    const result = await verifyOTP(email, otp, purpose);
+
+    if (!result.verified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully',
+      data: {
+        verified: true,
+        verifiedAt: result.verifiedAt,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        message: error.issues[0]?.message || 'Validation failed',
+      });
+    }
+
+    next(error);
+  }
+};
+
 const oauthSuccess = async (req, res) => {
   const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
   await User.updateOne({ _id: req.user._id }, { lastLogin: new Date() });
@@ -189,6 +288,9 @@ module.exports = {
   signup,
   login,
   sellerLogin,
+  sendOtpCode,
+  resendOtpCode,
+  verifyOtpCode,
   oauthSuccess,
   oauthFailure,
   generateToken,

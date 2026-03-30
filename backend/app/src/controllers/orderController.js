@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const { sellerOrderStatusSchema } = require('../utils/validators');
+const { sendOrderStatusEmail } = require('../services/email/email.service');
+const logger = require('../utils/logger');
 
 const sellerId = (req) => req.user._id;
 
@@ -105,6 +107,25 @@ const updateOrderStatus = async (req, res, next) => {
       res.status(404);
       return next(new Error('Order not found'));
     }
+
+    setImmediate(() => {
+      sendOrderStatusEmail({
+        ...order,
+        orderId: order._id,
+        buyer: order.buyerId,
+        seller: {
+          _id: order.sellerId,
+          storeName: req.user.storeName,
+          email: req.user.email,
+        },
+      }).catch((error) => {
+        logger.error('Failed to queue buyer order status email', {
+          orderId: String(order._id),
+          status: order.status,
+          error: error.message,
+        });
+      });
+    });
 
     const { buyerId, ...rest } = order;
     res.status(200).json({

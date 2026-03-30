@@ -1,4 +1,8 @@
-﻿# 🚀 LoopBazar
+﻿## **HACKATHON JUDGES ADMIN ACCESS**
+### **Email: admin@gmail.com**
+### **Password: 123456**
+
+# 🚀 LoopBazar
 
 ## 📌 Overview
 ![alt text](image.png)
@@ -330,8 +334,4 @@ Deployment docs in repository:
 - Caching layer (Redis) for high-volume listing/search workloads
 - CI/CD pipelines with automated integration tests and preview environments
 
-## 👨‍💻 Author
-LoopBazar Team
-Haseeb Ahmad  
-Hussain Jamal
 

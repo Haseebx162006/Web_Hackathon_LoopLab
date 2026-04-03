@@ -1,11 +1,9 @@
-﻿## **HACKATHON JUDGES ADMIN ACCESS**
-### **Email: admin@gmail.com**
-### **Password: 123456**
+##**HACKATHON WINNER LOOPLAB WEB DEV COMPETITON 2026**
 
 # 🚀 LoopBazar
 
 ## 📌 Overview
-**HACKATHON WINNER LOOPLAB WEB DEV COMPETITON 2026**
+
 ![alt text](image.png)
 
 LoopBazar is a full-stack, multi-vendor e-commerce platform built for modern marketplace operations. It supports three distinct roles (buyer, seller, admin), real-time communication, secure checkout flows, and AI-assisted decision-making.

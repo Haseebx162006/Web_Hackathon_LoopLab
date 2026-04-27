@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
   // Optimize for production builds
   poweredByHeader: false,
   reactStrictMode: true,
+  // Enable standalone output for Docker
+  output: 'standalone',
 };
 
 export default nextConfig;

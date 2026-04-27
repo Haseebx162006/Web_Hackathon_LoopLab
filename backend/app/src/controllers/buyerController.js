@@ -96,42 +96,111 @@ const searchProducts = async (req, res, next) => {
   try {
     const { search, category, sellerId, minPrice, maxPrice, sort, page = 1, limit = 20 } = req.query;
     const statuses = getPublicStatuses();
-    const query = { status: { $in: statuses } };
     const pageNumber = Math.max(1, Number(page) || 1);
     const limitNumber = Math.min(50, Math.max(1, Number(limit) || 20));
-
-    if (search) {
-      query.productName = { $regex: escapeRegex(String(search).trim()), $options: 'i' };
-    }
-    if (category) {
-      query.category = category;
-    }
-    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
-      query.sellerId = sellerId;
-    }
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
-
-    let sortQuery = { createdAt: -1 };
-    if (sort === 'price_asc') sortQuery = { price: 1 };
-    if (sort === 'price_desc') sortQuery = { price: -1 };
-
     const skip = (pageNumber - 1) * limitNumber;
 
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .sort(sortQuery)
-        .skip(skip)
-        .limit(limitNumber)
-        .populate('sellerId', 'storeName storeLogo')
-        .select('productName price discountPrice productImages category skuCode stockQuantity sellerId')
-        .lean(),
-      Product.countDocuments(query),
+    // Build aggregation pipeline
+    const pipeline = [];
+
+    // Initial match for status
+    const matchStage = { status: { $in: statuses } };
+
+    if (search) {
+      matchStage.productName = { $regex: escapeRegex(String(search).trim()), $options: 'i' };
+    }
+    if (category) {
+      matchStage.category = category;
+    }
+    if (sellerId && mongoose.Types.ObjectId.isValid(sellerId)) {
+      matchStage.sellerId = new mongoose.Types.ObjectId(sellerId);
+    }
+
+    pipeline.push({ $match: matchStage });
+
+    // Add effectivePrice field for filtering and sorting
+    pipeline.push({
+      $addFields: {
+        effectivePrice: {
+          $cond: {
+            if: { $and: [{ $ne: ['$discountPrice', null] }, { $gt: ['$discountPrice', 0] }] },
+            then: '$discountPrice',
+            else: '$price'
+          }
+        }
+      }
+    });
+
+    // Price filtering on effectivePrice
+    if (minPrice || maxPrice) {
+      const priceMatch = {};
+      if (minPrice) priceMatch.$gte = Number(minPrice);
+      if (maxPrice) priceMatch.$lte = Number(maxPrice);
+      pipeline.push({ $match: { effectivePrice: priceMatch } });
+    }
+
+    // Count total before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    
+    // Sorting
+    let sortStage = { createdAt: -1 };
+    if (sort === 'price_asc') sortStage = { effectivePrice: 1 };
+    if (sort === 'price_desc') sortStage = { effectivePrice: -1 };
+    pipeline.push({ $sort: sortStage });
+
+    // Pagination
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limitNumber });
+
+    // Lookup seller info
+    pipeline.push({
+      $lookup: {
+        from: 'users',
+        localField: 'sellerId',
+        foreignField: '_id',
+        as: 'sellerInfo'
+      }
+    });
+
+    // Format seller data
+    pipeline.push({
+      $addFields: {
+        sellerId: {
+          $cond: {
+            if: { $gt: [{ $size: '$sellerInfo' }, 0] },
+            then: {
+              _id: { $arrayElemAt: ['$sellerInfo._id', 0] },
+              storeName: { $arrayElemAt: ['$sellerInfo.storeName', 0] },
+              storeLogo: { $arrayElemAt: ['$sellerInfo.storeLogo', 0] }
+            },
+            else: '$sellerId'
+          }
+        }
+      }
+    });
+
+    // Project only needed fields
+    pipeline.push({
+      $project: {
+        productName: 1,
+        price: 1,
+        discountPrice: 1,
+        productImages: 1,
+        category: 1,
+        skuCode: 1,
+        stockQuantity: 1,
+        sellerId: 1,
+        effectivePrice: 1
+      }
+    });
+
+    // Execute both queries
+    const [products, countResult] = await Promise.all([
+      Product.aggregate(pipeline),
+      Product.aggregate(countPipeline)
     ]);
 
+    const total = countResult[0]?.total || 0;
     const productsWithRatings = await attachRatings(products);
 
     res.status(200).json({

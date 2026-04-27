@@ -191,9 +191,28 @@ const ProductListingPageContent = () => {
   };
 
   const handleApplyPrice = () => {
+    const min = minPriceInput.trim();
+    const max = maxPriceInput.trim();
+    
+    // Validate that inputs are numbers
+    if (min && isNaN(Number(min))) {
+      toast.error('Minimum price must be a valid number');
+      return;
+    }
+    if (max && isNaN(Number(max))) {
+      toast.error('Maximum price must be a valid number');
+      return;
+    }
+    
+    // Validate that min is not greater than max
+    if (min && max && Number(min) > Number(max)) {
+      toast.error('Minimum price cannot be greater than maximum price');
+      return;
+    }
+    
     updateQuery({
-      minPrice: minPriceInput.trim() || null,
-      maxPrice: maxPriceInput.trim() || null,
+      minPrice: min || null,
+      maxPrice: max || null,
     });
   };
   const blobColors = ['#FF70A1', '#D4A5FF', '#FFB7CE', '#70D6FF', '#FFD670', '#A5FFD6'];

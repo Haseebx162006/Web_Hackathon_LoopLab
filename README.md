@@ -1,6 +1,9 @@
-﻿# 🚀 LoopBazar
+## **HACKATHON WINNER LOOPLAB WEB DEV COMPETITON 2026**
+
+# 🚀 LoopBazar
 
 ## 📌 Overview
+
 ![alt text](image.png)
 
 LoopBazar is a full-stack, multi-vendor e-commerce platform built for modern marketplace operations. It supports three distinct roles (buyer, seller, admin), real-time communication, secure checkout flows, and AI-assisted decision-making.
@@ -330,8 +333,4 @@ Deployment docs in repository:
 - Caching layer (Redis) for high-volume listing/search workloads
 - CI/CD pipelines with automated integration tests and preview environments
 
-## 👨‍💻 Author
-LoopBazar Team
-Haseeb Ahmad  
-Hussain Jamal
 

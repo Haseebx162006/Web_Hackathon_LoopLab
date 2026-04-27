@@ -16,7 +16,7 @@ const inMemoryQueue = [];
 let drainingMemoryQueue = false;
 let inMemoryCounter = 0;
 
-const shouldUseRedisQueue = () => Boolean(process.env.REDIS_URL);
+const shouldUseRedisQueue = () => Boolean(process.env.REDIS_URL || process.env.REDIS_HOST);
 
 const loadBullDependencies = () => {
   if (bullmq && Redis) {
@@ -46,10 +46,23 @@ const setupBullQueue = () => {
   }
 
   try {
-    connection = new Redis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-    });
+    // Support both REDIS_URL and separate REDIS_HOST/PORT/PASSWORD
+    const redisConfig = process.env.REDIS_URL 
+      ? process.env.REDIS_URL
+      : {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          password: process.env.REDIS_PASSWORD || undefined,
+          maxRetriesPerRequest: null,
+          enableReadyCheck: false,
+        };
+
+    connection = new Redis(redisConfig, 
+      typeof redisConfig === 'string' ? {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      } : undefined
+    );
 
     queue = new bullmq.Queue(QUEUE_NAME, {
       connection,

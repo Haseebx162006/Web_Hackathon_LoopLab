@@ -1,5 +1,4 @@
 # Production Docker Compose - Uses External MongoDB Atlas & Redis Cloud
-version: '3.8'
 
 services:
   # Backend API
